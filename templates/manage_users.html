@@ -100,6 +100,43 @@
             border-radius: 4px;
             margin-bottom: 16px;
         }
+        @media (max-width: 600px) {
+            .container {
+                max-width: 95vw;
+                margin: 20px auto;
+                padding: 20px;
+            }
+            .title {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+            .nav-btn {
+                display: block;
+                width: 100%;
+                margin: 8px 0;
+                padding: 12px;
+                font-size: 1rem;
+                text-align: center;
+                min-height: 44px;
+                box-sizing: border-box;
+            }
+            table {
+                font-size: 0.8rem;
+            }
+            th, td {
+                padding: 8px 4px;
+            }
+            .btn {
+                padding: 6px 8px;
+                font-size: 0.7rem;
+                margin: 1px;
+                min-height: 32px;
+            }
+            /* 在移动端隐藏某些列以节省空间 */
+            .mobile-hide {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
