@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄影比赛投票</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 32px auto;
+            padding: 16px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+        .photo-item {
+            background: #181818;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 1px 4px #0004;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .photo-item img {
+            width: 100%;
+            max-width: 180px;
+            max-height: 120px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: box-shadow 0.2s;
+        }
+        .photo-info {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+        .photo-vote-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .photo-vote-btn {
+            width: 100%;
+            padding: 8px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: background 0.2s;
+        }
+        .photo-vote-btn:hover {
+            background: #666;
+        }
+        @media (max-width: 900px) {
+            .photo-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .container { max-width: 98vw; }
+            .title { font-size: 1.3rem; }
+            .photo-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .photo-item img {
+                max-width: 98vw;
+                max-height: 30vw;
+            }
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+        .info-label {
+            flex: 1;
+            text-align: left;
+        }
+        .info-value {
+            flex: 1;
+            text-align: right;
+        }
+        .vote-btn {
+            width: 100%;
+            padding: 12px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-top: 24px;
+            transition: background 0.2s;
+        }
+        .vote-btn:hover {
+            background: #666;
+        }
+        /* 大图弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal img {
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 12px;
+        }
+        .modal.active {
+            display: flex;
+        }
+        @media (max-width: 600px) {
+            .container { max-width: 98vw; }
+            .title { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">{{ contest_title }}</div>
+        <div class="photo-grid">
+            {% for photo in photos %}
+            <div class="photo-item">
+                <img src="{{ photo.thumb_url }}" alt="参赛照片" onclick="showModal('{{ photo.url }}')">
+                <div class="photo-info">
+                    <span>{{ photo.class_name }}</span>
+                    <span>{{ photo.student_name }}</span>
+                </div>
+                <div class="photo-vote-row">
+                    <span>票数：</span>
+                    <span id="vote-count-{{ photo.id }}">{{ photo.vote_count }}</span>
+                </div>
+                <button class="photo-vote-btn" onclick="votePhoto('{{ photo.id }}')">投票</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- 大图弹窗 -->
+    <div class="modal" id="modal" onclick="hideModal()">
+        <img id="modal-img" src="" alt="大图预览">
+    </div>
+    <script>
+        function showModal(url) {
+            const modal = document.getElementById('modal');
+            const modalImg = document.getElementById('modal-img');
+            modalImg.src = url;
+            modal.classList.add('active');
+        }
+        function hideModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        function votePhoto(photoId) {
+            fetch('/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ photo_id: photoId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('vote-count-' + photoId).textContent = data.vote_count;
+            });
+        }
+    </script>
+</body>
+</html>
