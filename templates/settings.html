@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 32px auto;
+            padding: 24px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 24px;
+        }
+        .nav-btn {
+            display: inline-block;
+            margin: 0 8px 16px 0;
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            border: none;
+            background: #333;
+            color: #fff;
+        }
+        .checkbox-group {
+            margin-bottom: 16px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .flash {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">系统设置</div>
+        
+        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+        <a href="{{ url_for('admin') }}" class="nav-btn">管理面板</a>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="post">
+            <label for="contest_title">比赛标题</label>
+            <input type="text" name="contest_title" id="contest_title" value="{{ settings.contest_title }}" required>
+            
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="allow_upload" {% if settings.allow_upload %}checked{% endif %}>
+                    允许用户上传照片
+                </label>
+            </div>
+            
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="allow_vote" {% if settings.allow_vote %}checked{% endif %}>
+                    允许用户投票
+                </label>
+            </div>
+            
+            <button class="btn" type="submit">保存设置</button>
+        </form>
+    </div>
+</body>
+</html>

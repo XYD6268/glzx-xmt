@@ -13,7 +13,7 @@
             padding: 0;
         }
         .container {
-            max-width: 400px;
+            max-width: 500px;
             margin: 48px auto;
             padding: 24px;
             background: #222;
@@ -37,6 +37,25 @@
             background: #333;
             color: #fff;
         }
+        .file-upload {
+            border: 2px dashed #666;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            background: #333;
+        }
+        .file-upload:hover {
+            border-color: #888;
+        }
+        .file-list {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        .file-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #444;
+        }
         .btn {
             width: 100%;
             padding: 12px;
@@ -52,20 +71,70 @@
         .btn:hover {
             background: #666;
         }
+        .btn:disabled {
+            background: #333;
+            cursor: not-allowed;
+        }
+        .back-btn {
+            display: block;
+            width: 120px;
+            margin: 0 auto 20px auto;
+            padding: 8px;
+            background: #555;
+            color: #fff;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .back-btn:hover {
+            background: #777;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="/" class="back-btn">← 返回主页</a>
         <h2>上传参赛照片</h2>
         <form method="post" enctype="multipart/form-data">
             <label for="class_name">班级</label>
             <input type="text" name="class_name" id="class_name" required>
+            
             <label for="student_name">姓名</label>
             <input type="text" name="student_name" id="student_name" required>
-            <label for="photo">照片</label>
-            <input type="file" name="photo" id="photo" accept="image/*" required>
-            <button class="btn" type="submit">上传</button>
+            
+            <label for="photos">选择照片（可多选）</label>
+            <div class="file-upload">
+                <input type="file" name="photos" id="photos" accept="image/*" multiple required>
+                <p>点击选择照片或拖拽照片到此处</p>
+                <div class="file-list" id="file-list"></div>
+            </div>
+            
+            <button class="btn" type="submit" id="submit-btn">上传照片</button>
         </form>
     </div>
+    
+    <script>
+        const fileInput = document.getElementById('photos');
+        const fileList = document.getElementById('file-list');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        fileInput.addEventListener('change', function() {
+            fileList.innerHTML = '';
+            if (this.files.length > 0) {
+                fileList.innerHTML = '<strong>已选择的照片：</strong>';
+                for (let i = 0; i < this.files.length; i++) {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.textContent = `${i + 1}. ${this.files[i].name}`;
+                    fileList.appendChild(fileItem);
+                }
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理面板</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 32px auto;
+            padding: 16px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 24px;
+        }
+        .nav-btn {
+            display: inline-block;
+            margin: 0 8px 16px 0;
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        .section {
+            margin-bottom: 32px;
+            padding: 16px;
+            background: #333;
+            border-radius: 8px;
+        }
+        .section h3 {
+            margin-top: 0;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .photo-item {
+            background: #444;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        .photo-item img {
+            width: 100%;
+            border-radius: 6px;
+        }
+        .photo-info {
+            padding: 8px 0;
+            font-size: 0.9rem;
+        }
+        .btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 0.8rem;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-reject {
+            background: #f44336;
+        }
+        .btn-reject:hover {
+            background: #da190b;
+        }
+        .btn-delete {
+            background: #d32f2f;
+        }
+        .btn-delete:hover {
+            background: #b71c1c;
+        }
+        .flash {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">管理面板</div>
+        
+        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="section">
+            <h3>待审核照片 ({{ pending_photos|length }})</h3>
+            <div class="photo-grid">
+                {% for photo in pending_photos %}
+                <div class="photo-item">
+                    <img src="{{ photo.thumb_url }}" alt="待审核照片">
+                    <div class="photo-info">
+                        <strong>{{ photo.class_name }} - {{ photo.student_name }}</strong><br>
+                        上传者: {{ photo.user_id }}<br>
+                        <a href="{{ url_for('approve_photo', photo_id=photo.id) }}" class="btn">通过</a>
+                        <a href="{{ url_for('reject_photo', photo_id=photo.id) }}" class="btn btn-reject">拒绝</a>
+                        <a href="{{ url_for('admin_delete_photo', photo_id=photo.id) }}" class="btn btn-delete" 
+                           onclick="return confirm('确定删除此照片？')">删除</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if not pending_photos %}
+            <p style="color: #888;">暂无待审核照片</p>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <h3>所有照片管理 ({{ all_photos|length }})</h3>
+            <div class="photo-grid">
+                {% for photo in all_photos %}
+                <div class="photo-item">
+                    <img src="{{ photo.thumb_url }}" alt="照片">
+                    <div class="photo-info">
+                        <strong>{{ photo.class_name }} - {{ photo.student_name }}</strong><br>
+                        票数: {{ photo.vote_count }}<br>
+                        状态: 
+                        {% if photo.status == 0 %}待审核
+                        {% elif photo.status == 1 %}已通过
+                        {% else %}已拒绝
+                        {% endif %}<br>
+                        <a href="{{ url_for('admin_delete_photo', photo_id=photo.id) }}" class="btn btn-delete" 
+                           onclick="return confirm('确定删除此照片？')">删除</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

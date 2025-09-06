@@ -26,6 +26,48 @@
             margin-bottom: 24px;
             letter-spacing: 2px;
         }
+        .nav-btn {
+            display: block;
+            width: 200px;
+            margin: 0 auto 24px auto;
+            padding: 10px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        .user-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+            border-bottom: 1px solid #444;
+        }
+        .user-info {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        .user-links {
+            display: flex;
+            gap: 10px;
+        }
+        .user-links a {
+            color: #888;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .user-links a:hover {
+            background: #444;
+            color: #fff;
+        }
         .photo-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -151,7 +193,39 @@
 </head>
 <body>
     <div class="container">
+        <div class="user-nav">
+            {% if current_user %}
+                <div class="user-info">
+                    欢迎，{{ current_user.username }} 
+                    {% if current_user.role == 3 %}(系统管理员)
+                    {% elif current_user.role == 2 %}(管理员)
+                    {% else %}(用户)
+                    {% endif %}
+                </div>
+                <div class="user-links">
+                    <a href="{{ url_for('my_photos') }}">我的照片</a>
+                    {% if current_user.role >= 2 %}
+                        <a href="{{ url_for('admin') }}">管理面板</a>
+                    {% endif %}
+                    {% if current_user.role >= 3 %}
+                        <a href="{{ url_for('settings') }}">系统设置</a>
+                        <a href="{{ url_for('manage_users') }}">用户管理</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}">退出登录</a>
+                </div>
+            {% else %}
+                <div class="user-info">游客模式</div>
+                <div class="user-links">
+                    <a href="{{ url_for('login') }}">登录</a>
+                    <a href="{{ url_for('register') }}">注册</a>
+                </div>
+            {% endif %}
+        </div>
+        
         <div class="title">{{ contest_title }}</div>
+        {% if current_user %}
+            <a href="/upload" class="nav-btn">上传新照片</a>
+        {% endif %}
         <div class="photo-grid">
             {% for photo in photos %}
             <div class="photo-item">
@@ -173,7 +247,18 @@
     <div class="modal" id="modal" onclick="hideModal()">
         <img id="modal-img" src="" alt="大图预览">
     </div>
+    <!-- 隐藏数据元素 -->
+    <div id="user-data" 
+         data-logged-in="{% if current_user %}true{% else %}false{% endif %}"
+         data-can-vote="{% if current_user and allow_vote %}true{% else %}false{% endif %}"
+         style="display: none;"></div>
+    
     <script>
+        // 从隐藏元素获取用户权限状态
+        const userData = document.getElementById('user-data');
+        const userLoggedIn = userData.getAttribute('data-logged-in') === 'true';
+        const canVote = userData.getAttribute('data-can-vote') === 'true';
+        
         function showModal(url) {
             const modal = document.getElementById('modal');
             const modalImg = document.getElementById('modal-img');
@@ -184,15 +269,25 @@
             document.getElementById('modal').classList.remove('active');
         }
         function votePhoto(photoId) {
-            fetch('/vote', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ photo_id: photoId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('vote-count-' + photoId).textContent = data.vote_count;
-            });
+            if (canVote) {
+                fetch('/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ photo_id: photoId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        document.getElementById('vote-count-' + photoId).textContent = data.vote_count;
+                    }
+                });
+            } else if (userLoggedIn) {
+                alert('您当前无法投票');
+            } else {
+                alert('请先登录后再投票');
+            }
         }
     </script>
 </body>

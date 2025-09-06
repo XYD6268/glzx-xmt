@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的照片</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 32px auto;
+            padding: 16px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 24px;
+        }
+        .nav-btn {
+            display: inline-block;
+            margin: 0 8px 16px 0;
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+        .photo-item {
+            background: #181818;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 1px 4px #0004;
+        }
+        .photo-item img {
+            width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .photo-info {
+            padding: 8px 0;
+            font-size: 0.9rem;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin: 4px 0;
+        }
+        .status-pending { background: #ff9800; }
+        .status-approved { background: #4caf50; }
+        .status-rejected { background: #f44336; }
+        .delete-btn {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .delete-btn:hover {
+            background: #b71c1c;
+        }
+        .flash {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">我的照片</div>
+        
+        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+        <a href="{{ url_for('upload') }}" class="nav-btn">上传新照片</a>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="photo-grid">
+            {% for photo in photos %}
+            <div class="photo-item">
+                <img src="{{ photo.thumb_url }}" alt="我的照片">
+                <div class="photo-info">
+                    <strong>{{ photo.class_name }} - {{ photo.student_name }}</strong><br>
+                    票数: {{ photo.vote_count }}
+                    <div class="status 
+                        {% if photo.status == 0 %}status-pending
+                        {% elif photo.status == 1 %}status-approved
+                        {% else %}status-rejected
+                        {% endif %}">
+                        {% if photo.status == 0 %}待审核
+                        {% elif photo.status == 1 %}已通过
+                        {% else %}已拒绝
+                        {% endif %}
+                    </div>
+                    <button class="delete-btn" onclick="deletePhoto('{{ photo.id }}')">删除</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not photos %}
+        <p style="text-align: center; color: #888;">您还没有上传任何照片</p>
+        {% endif %}
+    </div>
+    
+    <script>
+        function deletePhoto(photoId) {
+            if (confirm('确定删除此照片？')) {
+                location.href = '/delete_photo/' + photoId;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 32px auto;
+            padding: 24px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 24px;
+        }
+        .nav-btn {
+            display: inline-block;
+            margin: 0 8px 16px 0;
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        th {
+            background: #333;
+        }
+        .role {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .role-1 { background: #2196f3; }
+        .role-2 { background: #ff9800; }
+        .role-3 { background: #f44336; }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .status-active { background: #4caf50; }
+        .status-inactive { background: #9e9e9e; }
+        .btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 0.8rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-warning {
+            background: #ff9800;
+        }
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+        .btn-danger {
+            background: #f44336;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        .flash {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">用户管理</div>
+        
+        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+        <a href="{{ url_for('settings') }}" class="nav-btn">系统设置</a>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>邮箱</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>注册时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="role role-{{ user.role }}">
+                            {% if user.role == 1 %}普通用户
+                            {% elif user.role == 2 %}管理员
+                            {% else %}系统管理员
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            {% if user.is_active %}正常{% else %}禁用{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}</td>
+                    <td>
+                        {% if user.role < 3 %}
+                            <a href="{{ url_for('change_user_role', user_id=user.id, new_role=1) }}" class="btn">设为用户</a>
+                            <a href="{{ url_for('change_user_role', user_id=user.id, new_role=2) }}" class="btn btn-warning">设为管理员</a>
+                            <a href="{{ url_for('change_user_role', user_id=user.id, new_role=3) }}" class="btn btn-danger">设为系统管理员</a>
+                            <a href="{{ url_for('toggle_user_status', user_id=user.id) }}" class="btn btn-warning">
+                                {% if user.is_active %}禁用{% else %}启用{% endif %}
+                            </a>
+                        {% else %}
+                            <span style="color: #888;">系统管理员</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

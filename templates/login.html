@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 80px auto;
+            padding: 24px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            border: none;
+            background: #333;
+            color: #fff;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #666;
+        }
+        .link {
+            text-align: center;
+            margin-top: 16px;
+        }
+        .link a {
+            color: #888;
+            text-decoration: none;
+        }
+        .link a:hover {
+            color: #fff;
+        }
+        .flash {
+            background: #d32f2f;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>用户登录</h2>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="post">
+            <label for="username">用户名</label>
+            <input type="text" name="username" id="username" required>
+            
+            <label for="password">密码</label>
+            <input type="password" name="password" id="password" required>
+            
+            <button class="btn" type="submit">登录</button>
+        </form>
+        <div class="link">
+            <a href="{{ url_for('register') }}">还没有账号？点击注册</a>
+        </div>
+        <div class="link">
+            <a href="{{ url_for('index') }}">返回首页</a>
+        </div>
+    </div>
+</body>
+</html>
