@@ -334,6 +334,18 @@
                 <a href="{{ url_for('ip_management') }}" class="nav-btn">🛡️ IP管理</a>
                 <a href="{{ url_for('settings') }}" class="nav-btn">⚙️ 系统设置</a>
             </div>
+            
+            <div style="margin: 16px 0; padding: 16px; background: #444; border-radius: 8px;">
+                <h3 style="margin: 0 0 12px 0; color: #fff; font-size: 1rem;">🔧 系统维护</h3>
+                <a href="{{ url_for('cleanup_files') }}" class="nav-btn" 
+                   onclick="return confirm('确定要清理孤立文件吗？这会删除数据库中不存在记录的文件。')"
+                   style="background: #ff6b35; margin-right: 8px;">
+                   🗑️ 清理孤立文件
+                </a>
+                <small style="color: #ccc; display: block; margin-top: 8px;">
+                    清理服务器上没有对应数据库记录的文件
+                </small>
+            </div>
         </div>
         
         {% with messages = get_flashed_messages() %}

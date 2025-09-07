@@ -4,6 +4,9 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from PIL import Image
 import os
+import hashlib
+import uuid
+from datetime import datetime
 from functools import wraps
 
 app = Flask(__name__)
@@ -65,6 +68,24 @@ class IpBanRecord(db.Model):
     ban_reason = db.Column(db.String(200), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
 
+class IpWhitelist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False, unique=True)
+    description = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+class UserWhitelist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    description = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # 关系定义
+    user = db.relationship('User', foreign_keys=[user_id], backref='whitelist_entry')
+    creator = db.relationship('User', foreign_keys=[created_by])
+
 class Settings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     contest_title = db.Column(db.String(100), default="2025年摄影比赛")
@@ -122,6 +143,27 @@ def get_settings():
         db.session.commit()
     return settings
 
+def generate_secure_filename(original_filename, user, photo_counter):
+    """
+    生成安全的文件名
+    格式: {school_id}_{photo_counter}_{datetime}.{ext}
+    例如: 2024001_001_20241207_143025.jpg
+    """
+    # 获取文件扩展名
+    _, ext = os.path.splitext(original_filename)
+    ext = ext.lower()
+    
+    # 生成时间戳（年月日_时分秒）
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    # 格式化计数器为3位数字
+    photo_id = f"{photo_counter:03d}"
+    
+    # 组合文件名: {school_id}_{photo_id}_{timestamp}.{ext}
+    secure_name = f"{user.school_id}_{photo_id}_{timestamp}{ext}"
+    
+    return secure_name
+
 def is_voting_time():
     """检查当前时间是否在投票时间范围内"""
     settings = get_settings()
@@ -155,6 +197,16 @@ def check_ip_ban(ip_address):
     ban_record = IpBanRecord.query.filter_by(ip_address=ip_address, is_active=True).first()
     return ban_record is not None, ban_record
 
+def check_ip_whitelist(ip_address):
+    """检查IP是否在白名单中"""
+    whitelist_entry = IpWhitelist.query.filter_by(ip_address=ip_address).first()
+    return whitelist_entry is not None
+
+def check_user_whitelist(user_id):
+    """检查用户是否在白名单中"""
+    whitelist_entry = UserWhitelist.query.filter_by(user_id=user_id).first()
+    return whitelist_entry is not None
+
 def ban_ip(ip_address, reason):
     """封禁IP地址"""
     existing_ban = IpBanRecord.query.filter_by(ip_address=ip_address).first()
@@ -167,10 +219,18 @@ def ban_ip(ip_address, reason):
         db.session.add(ban_record)
     db.session.commit()
 
-def check_vote_frequency(ip_address):
+def check_vote_frequency(ip_address, user_id=None):
     """检查IP投票频率是否超限"""
     settings = get_settings()
     if not settings.risk_control_enabled:
+        return False, ""
+    
+    # 检查IP白名单
+    if check_ip_whitelist(ip_address):
+        return False, ""
+    
+    # 检查用户白名单
+    if user_id and check_user_whitelist(user_id):
         return False, ""
     
     from datetime import datetime, timedelta
@@ -191,6 +251,14 @@ def check_login_frequency(ip_address, user_id):
     """检查IP登录账号数量是否超限"""
     settings = get_settings()
     if not settings.risk_control_enabled:
+        return False, ""
+    
+    # 检查IP白名单
+    if check_ip_whitelist(ip_address):
+        return False, ""
+    
+    # 检查用户白名单
+    if check_user_whitelist(user_id):
         return False, ""
     
     from datetime import datetime, timedelta
@@ -372,7 +440,7 @@ def vote():
     
     # 检查投票频率（仅对非管理员用户）
     if user.role < 2:  # 非管理员
-        is_over_limit, limit_reason = check_vote_frequency(client_ip)
+        is_over_limit, limit_reason = check_vote_frequency(client_ip, user_id)
         if is_over_limit:
             # 自动封禁相关用户和IP
             banned_users = auto_ban_users_by_ip(client_ip, limit_reason)
@@ -444,43 +512,90 @@ def upload():
         class_name = current_user.class_name
         student_name = current_user.real_name
         
+        # 获取该用户已上传的照片数量，用作计数器起始值
+        existing_photos_count = Photo.query.filter_by(user_id=user_id).count()
+        
         uploaded_count = 0
         for i, file in enumerate(files):
             if file and file.filename:
                 # 获取对应的作品名称，如果没有提供则使用默认名称
                 title = titles[i] if i < len(titles) and titles[i].strip() else f"作品{i+1}"
                 
-                filename = secure_filename(file.filename)
-                # 为每个文件生成唯一的文件名
-                import time
-                timestamp = str(int(time.time() * 1000))
-                name, ext = os.path.splitext(filename)
-                unique_filename = f"{name}_{timestamp}_{uploaded_count}{ext}"
+                # 验证文件类型
+                allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+                _, ext = os.path.splitext(file.filename)
+                if ext.lower() not in allowed_extensions:
+                    flash(f'文件 {file.filename} 格式不支持，请上传图片文件')
+                    continue
                 
-                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                file.save(save_path)
+                # 计算当前照片的序号（现有照片数 + 当前上传序号 + 1）
+                photo_counter = existing_photos_count + uploaded_count + 1
                 
-                # 生成缩略图
-                thumb_path = os.path.join(app.config['THUMB_FOLDER'], unique_filename)
-                img = Image.open(save_path)
-                img.thumbnail((180, 120))
-                img.save(thumb_path)
+                # 生成安全的唯一文件名
+                secure_name = generate_secure_filename(file.filename, current_user, photo_counter)
                 
-                # 写入数据库
-                photo = Photo(
-                    url='/' + save_path.replace('\\', '/'), 
-                    thumb_url='/' + thumb_path.replace('\\', '/'), 
-                    title=title,  # 添加作品名称
-                    class_name=class_name, 
-                    student_name=student_name,
-                    user_id=user_id,
-                    status=0  # 待审核状态
-                )
-                db.session.add(photo)
-                uploaded_count += 1
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_name)
+                
+                # 检查文件是否已存在（虽然UUID几乎不可能重复）
+                counter = 1
+                original_name = secure_name
+                while os.path.exists(save_path):
+                    name, ext = os.path.splitext(original_name)
+                    secure_name = f"{name}_{counter}{ext}"
+                    save_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_name)
+                    counter += 1
+                
+                try:
+                    file.save(save_path)
+                    
+                    # 验证图片文件并生成缩略图
+                    try:
+                        with Image.open(save_path) as img:
+                            # 验证是否为有效图片
+                            img.verify()
+                        
+                        # 重新打开图片生成缩略图（verify后需要重新打开）
+                        with Image.open(save_path) as img:
+                            # 转换为RGB模式以确保兼容性
+                            if img.mode in ('RGBA', 'LA', 'P'):
+                                img = img.convert('RGB')
+                            
+                            # 生成缩略图
+                            thumb_path = os.path.join(app.config['THUMB_FOLDER'], secure_name)
+                            img.thumbnail((180, 120), Image.Resampling.LANCZOS)
+                            img.save(thumb_path, 'JPEG', quality=85)
+                    
+                    except Exception as img_error:
+                        # 如果图片处理失败，删除已保存的文件
+                        if os.path.exists(save_path):
+                            os.remove(save_path)
+                        flash(f'文件 {file.filename} 不是有效的图片文件')
+                        continue
+                    
+                    # 写入数据库
+                    photo = Photo(
+                        url='/' + save_path.replace('\\', '/'), 
+                        thumb_url='/' + thumb_path.replace('\\', '/'), 
+                        title=title,
+                        class_name=class_name, 
+                        student_name=student_name,
+                        user_id=user_id,
+                        status=0  # 待审核状态
+                    )
+                    db.session.add(photo)
+                    uploaded_count += 1
+                    
+                except Exception as e:
+                    flash(f'文件 {file.filename} 上传失败: {str(e)}')
+                    continue
         
         db.session.commit()
-        flash('照片上传成功，等待审核')
+        
+        if uploaded_count > 0:
+            flash(f'成功上传 {uploaded_count} 张照片，等待审核')
+        else:
+            flash('没有成功上传任何照片，请检查文件格式')
+            
         return redirect(url_for('my_photos'))
     
     # GET请求时，传递用户信息到模板
@@ -801,6 +916,48 @@ def batch_user_action():
     
     return redirect(url_for('manage_users'))
 
+def cleanup_orphaned_files():
+    """
+    清理数据库中不存在记录的孤立文件
+    """
+    try:
+        upload_folder = app.config['UPLOAD_FOLDER']
+        thumb_folder = app.config['THUMB_FOLDER']
+        
+        # 获取数据库中所有的文件路径
+        photos = Photo.query.all()
+        db_files = set()
+        
+        for photo in photos:
+            # 提取文件名
+            if photo.url:
+                filename = os.path.basename(photo.url)
+                db_files.add(filename)
+        
+        # 检查上传文件夹中的文件
+        cleaned_count = 0
+        if os.path.exists(upload_folder):
+            for filename in os.listdir(upload_folder):
+                if filename not in db_files:
+                    file_path = os.path.join(upload_folder, filename)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        cleaned_count += 1
+        
+        # 检查缩略图文件夹中的文件
+        if os.path.exists(thumb_folder):
+            for filename in os.listdir(thumb_folder):
+                if filename not in db_files:
+                    file_path = os.path.join(thumb_folder, filename)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        cleaned_count += 1
+        
+        return cleaned_count
+    except Exception as e:
+        print(f"清理文件时出错: {e}")
+        return 0
+
 @app.route('/ip_management')
 @admin_required
 def ip_management():
@@ -816,6 +973,10 @@ def ip_management():
     
     # 活跃IP数统计
     unique_ips_count = db.session.query(LoginRecord.ip_address).distinct().count()
+    
+    # 白名单统计
+    ip_whitelist_count = IpWhitelist.query.count()
+    user_whitelist_count = UserWhitelist.query.count()
     
     # 获取封禁IP列表
     banned_ips = IpBanRecord.query.order_by(IpBanRecord.banned_at.desc()).all()
@@ -840,6 +1001,19 @@ def ip_management():
             'user_count': row.user_count
         })
     
+    # 获取白名单数据
+    ip_whitelists = IpWhitelist.query.join(User, IpWhitelist.created_by == User.id).order_by(IpWhitelist.created_at.desc()).all()
+    
+    # 为user_whitelists查询创建User表的别名来避免冲突
+    from sqlalchemy.orm import aliased
+    CreatorUser = aliased(User)
+    user_whitelists = UserWhitelist.query.join(User, UserWhitelist.user_id == User.id).join(
+        CreatorUser, UserWhitelist.created_by == CreatorUser.id
+    ).order_by(UserWhitelist.created_at.desc()).all()
+    
+    # 获取所有用户用于添加到用户白名单
+    all_users = User.query.filter(User.role < 2).order_by(User.real_name).all()
+    
     settings = get_settings()
     
     return render_template('ip_management.html',
@@ -847,10 +1021,23 @@ def ip_management():
                          total_login_records=total_login_records,
                          recent_votes_count=recent_votes_count,
                          unique_ips_count=unique_ips_count,
+                         ip_whitelist_count=ip_whitelist_count,
+                         user_whitelist_count=user_whitelist_count,
                          banned_ips=banned_ips,
                          login_records=login_records,
                          vote_analysis=vote_analysis,
+                         ip_whitelists=ip_whitelists,
+                         user_whitelists=user_whitelists,
+                         all_users=all_users,
                          settings=settings)
+
+@app.route('/cleanup_files')
+@admin_required
+def cleanup_files():
+    """管理员专用：清理孤立文件"""
+    cleaned_count = cleanup_orphaned_files()
+    flash(f'清理完成，删除了 {cleaned_count} 个孤立文件')
+    return redirect(url_for('admin'))
 
 @app.route('/ban_ip', methods=['POST'])
 @admin_required
@@ -879,6 +1066,129 @@ def unban_ip(ip_id):
     
     flash(f'IP {ban_record.ip_address} 已解封')
     return redirect(url_for('ip_management'))
+
+@app.route('/add_ip_whitelist', methods=['POST'])
+@admin_required
+def add_ip_whitelist():
+    ip_address = request.form['ip_address'].strip()
+    description = request.form.get('description', '').strip()
+    admin_id = session['user_id']
+    
+    if not ip_address:
+        flash('IP地址不能为空')
+        return redirect(url_for('ip_management'))
+    
+    # 检查IP格式（简单验证）
+    import re
+    ip_pattern = r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+    if not re.match(ip_pattern, ip_address):
+        flash('IP地址格式不正确')
+        return redirect(url_for('ip_management'))
+    
+    # 检查是否已存在
+    existing = IpWhitelist.query.filter_by(ip_address=ip_address).first()
+    if existing:
+        flash(f'IP {ip_address} 已在白名单中')
+        return redirect(url_for('ip_management'))
+    
+    # 添加到白名单
+    whitelist_entry = IpWhitelist(
+        ip_address=ip_address,
+        description=description,
+        created_by=admin_id
+    )
+    db.session.add(whitelist_entry)
+    db.session.commit()
+    
+    flash(f'IP {ip_address} 已添加到白名单')
+    return redirect(url_for('ip_management'))
+
+@app.route('/remove_ip_whitelist/<int:whitelist_id>', methods=['POST'])
+@admin_required
+def remove_ip_whitelist(whitelist_id):
+    whitelist_entry = IpWhitelist.query.get_or_404(whitelist_id)
+    ip_address = whitelist_entry.ip_address
+    
+    db.session.delete(whitelist_entry)
+    db.session.commit()
+    
+    flash(f'IP {ip_address} 已从白名单中移除')
+    return redirect(url_for('ip_management'))
+
+@app.route('/add_user_whitelist', methods=['POST'])
+@admin_required
+def add_user_whitelist():
+    user_id = request.form['user_id']
+    description = request.form.get('description', '').strip()
+    admin_id = session['user_id']
+    
+    if not user_id:
+        flash('请选择用户')
+        return redirect(url_for('ip_management'))
+    
+    # 检查用户是否存在
+    user = User.query.get(user_id)
+    if not user:
+        flash('用户不存在')
+        return redirect(url_for('ip_management'))
+    
+    # 检查是否已在白名单中
+    existing = UserWhitelist.query.filter_by(user_id=user_id).first()
+    if existing:
+        flash(f'用户 {user.real_name} 已在白名单中')
+        return redirect(url_for('ip_management'))
+    
+    # 添加到白名单
+    whitelist_entry = UserWhitelist(
+        user_id=user_id,
+        description=description,
+        created_by=admin_id
+    )
+    db.session.add(whitelist_entry)
+    db.session.commit()
+    
+    flash(f'用户 {user.real_name} 已添加到白名单')
+    return redirect(url_for('ip_management'))
+
+@app.route('/remove_user_whitelist/<int:whitelist_id>', methods=['POST'])
+@admin_required
+def remove_user_whitelist(whitelist_id):
+    whitelist_entry = UserWhitelist.query.get_or_404(whitelist_id)
+    user = User.query.get(whitelist_entry.user_id)
+    user_name = user.real_name if user else '未知用户'
+    
+    db.session.delete(whitelist_entry)
+    db.session.commit()
+    
+    flash(f'用户 {user_name} 已从白名单中移除')
+    return redirect(url_for('ip_management'))
+
+@app.route('/whitelist_management')
+@admin_required
+def whitelist_management():
+    """白名单管理页面"""
+    # 获取统计信息
+    ip_whitelist_count = IpWhitelist.query.count()
+    user_whitelist_count = UserWhitelist.query.count()
+    
+    # 获取IP白名单（按创建时间倒序）
+    ip_whitelists = IpWhitelist.query.order_by(IpWhitelist.created_at.desc()).all()
+    
+    # 获取用户白名单（联接用户表获取用户信息）
+    user_whitelists = UserWhitelist.query.join(User, UserWhitelist.user_id == User.id).order_by(UserWhitelist.created_at.desc()).all()
+    
+    # 获取所有用户用于添加到用户白名单
+    all_users = User.query.filter(User.role < 2).order_by(User.real_name).all()
+    
+    settings = get_settings()
+    
+    return render_template('whitelist_management.html',
+                         ip_whitelist_count=ip_whitelist_count,
+                         user_whitelist_count=user_whitelist_count,
+                         ip_whitelists=ip_whitelists,
+                         user_whitelists=user_whitelists,
+                         all_users=all_users,
+                         settings=settings)
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

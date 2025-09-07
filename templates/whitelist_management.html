@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白名单管理 - {{ settings.contest_title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #333;
+            min-height: 100vh;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .nav {
+            background: #444;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            margin: 0 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        
+        .nav a:hover {
+            background: #555;
+        }
+        
+        .nav a.current {
+            background: #4caf50;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #444;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        
+        .ip-stat {
+            color: #2196f3;
+        }
+        
+        .user-stat {
+            color: #ff9800;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: #444;
+            border-radius: 12px;
+            padding: 8px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #ccc;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .add-form {
+            background: #444;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .form-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #4caf50;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #ccc;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #555;
+            border-radius: 8px;
+            background: #333;
+            color: #fff;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .btn-secondary {
+            background: #666;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #555;
+        }
+        
+        .table-container {
+            background: #444;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #555;
+        }
+        
+        th {
+            background: #333;
+            font-weight: 600;
+            color: #4caf50;
+        }
+        
+        tr:hover {
+            background: #3a3a3a;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        
+        .flash {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .flash.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .flash.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .ip-address {
+            font-family: 'Courier New', monospace;
+            background: #333;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-name {
+            font-weight: 500;
+        }
+        
+        .user-id {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        .description {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .date {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 10px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                margin-bottom: 4px;
+            }
+            
+            table {
+                font-size: 0.9rem;
+            }
+            
+            th, td {
+                padding: 12px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ 白名单管理</h1>
+        </div>
+        
+        <div class="nav">
+            <a href="{{ url_for('admin') }}">管理后台</a>
+            <a href="{{ url_for('ip_management') }}">IP管理</a>
+            <a href="{{ url_for('whitelist_management') }}" class="current">白名单管理</a>
+            <a href="{{ url_for('settings') }}">系统设置</a>
+            <a href="{{ url_for('index') }}">返回首页</a>
+        </div>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash success">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number ip-stat">{{ ip_whitelist_count }}</div>
+                <div class="stat-label">IP白名单条目</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number user-stat">{{ user_whitelist_count }}</div>
+                <div class="stat-label">用户白名单条目</div>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('ip-whitelist')">IP白名单</button>
+            <button class="tab" onclick="switchTab('user-whitelist')">用户白名单</button>
+        </div>
+        
+        <!-- IP Whitelist Tab -->
+        <div id="ip-whitelist" class="tab-content active">
+            <!-- Add IP Form -->
+            <div class="add-form">
+                <h3 class="form-title">📋 添加IP白名单</h3>
+                <form method="POST" action="{{ url_for('add_ip_whitelist') }}">
+                    <div class="form-group">
+                        <label for="ip_address">IP地址 *</label>
+                        <input type="text" id="ip_address" name="ip_address" placeholder="例如: 192.168.1.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ip_description">描述</label>
+                        <textarea id="ip_description" name="description" placeholder="可选：添加此IP的原因或说明"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">添加到白名单</button>
+                </form>
+            </div>
+            
+            <!-- IP Whitelist Table -->
+            <div class="table-container">
+                {% if ip_whitelists %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>IP地址</th>
+                                <th>描述</th>
+                                <th>添加人</th>
+                                <th>添加时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ip_whitelists %}
+                                <tr>
+                                    <td><span class="ip-address">{{ item.ip_address }}</span></td>
+                                    <td>
+                                        <span class="description" title="{{ item.description or '无描述' }}">
+                                            {{ item.description or '无描述' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.created_by }}</td>
+                                    <td class="date">{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('remove_ip_whitelist', whitelist_id=item.id) }}" 
+                                              style="display: inline;" 
+                                              onsubmit="return confirm('确定要从白名单中移除IP {{ item.ip_address }} 吗？')">
+                                            <button type="submit" class="btn btn-danger">移除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <i>📭</i>
+                        <h3>暂无IP白名单</h3>
+                        <p>添加受信任的IP地址，这些IP将免受自动风控限制</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- User Whitelist Tab -->
+        <div id="user-whitelist" class="tab-content">
+            <!-- Add User Form -->
+            <div class="add-form">
+                <h3 class="form-title">👤 添加用户白名单</h3>
+                <form method="POST" action="{{ url_for('add_user_whitelist') }}">
+                    <div class="form-group">
+                        <label for="user_id">用户ID *</label>
+                        <input type="number" id="user_id" name="user_id" placeholder="输入用户ID" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user_description">描述</label>
+                        <textarea id="user_description" name="description" placeholder="可选：添加此用户的原因或说明"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">添加到白名单</button>
+                </form>
+            </div>
+            
+            <!-- User Whitelist Table -->
+            <div class="table-container">
+                {% if user_whitelists %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>学号</th>
+                                <th>班级</th>
+                                <th>描述</th>
+                                <th>添加人</th>
+                                <th>添加时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in user_whitelists %}
+                                <tr>
+                                    <td>
+                                        <div class="user-info">
+                                            <span class="user-name">{{ item.user.real_name }}</span>
+                                            <span class="user-id">ID: {{ item.user.id }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.user.school_id }}</td>
+                                    <td>{{ item.user.class_name }}</td>
+                                    <td>
+                                        <span class="description" title="{{ item.description or '无描述' }}">
+                                            {{ item.description or '无描述' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.created_by }}</td>
+                                    <td class="date">{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('remove_user_whitelist', whitelist_id=item.id) }}" 
+                                              style="display: inline;" 
+                                              onsubmit="return confirm('确定要从白名单中移除用户 {{ item.user.real_name }} 吗？')">
+                                            <button type="submit" class="btn btn-danger">移除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <i>👥</i>
+                        <h3>暂无用户白名单</h3>
+                        <p>添加受信任的用户，这些用户将免受自动风控限制</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+        
+        // Auto-hide flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash');
+            flashMessages.forEach(message => {
+                setTimeout(() => {
+                    message.style.opacity = '0';
+                    setTimeout(() => {
+                        message.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>
