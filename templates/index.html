@@ -248,9 +248,93 @@
         .modal.active {
             display: flex;
         }
+        
+        /* 投票确认弹窗 */
+        .vote-confirm-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+        }
+        .vote-confirm-modal.active {
+            display: flex;
+        }
+        .vote-confirm-content {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 2px solid #444;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+        }
+        .vote-confirm-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+        .vote-confirm-message {
+            font-size: 1rem;
+            color: #ccc;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+        .vote-confirm-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .vote-confirm-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+        }
+        .vote-confirm-btn.confirm {
+            background: #e74c3c;
+            color: white;
+        }
+        .vote-confirm-btn.confirm:hover {
+            background: #c0392b;
+        }
+        .vote-confirm-btn.cancel {
+            background: #666;
+            color: white;
+        }
+        .vote-confirm-btn.cancel:hover {
+            background: #777;
+        }
         @media (max-width: 600px) {
             .container { max-width: 98vw; }
             .title { font-size: 1.3rem; }
+            .vote-confirm-content {
+                padding: 20px;
+                max-width: 90%;
+            }
+            .vote-confirm-title {
+                font-size: 1.1rem;
+                margin-bottom: 12px;
+            }
+            .vote-confirm-message {
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            }
+            .vote-confirm-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .vote-confirm-btn {
+                width: 100%;
+                padding: 12px;
+            }
         }
     </style>
 </head>
@@ -313,6 +397,21 @@
     <div class="modal" id="modal" onclick="hideModal()">
         <img id="modal-img" src="" alt="大图预览">
     </div>
+    
+    <!-- 投票确认弹窗 -->
+    <div class="vote-confirm-modal" id="voteConfirmModal">
+        <div class="vote-confirm-content">
+            <div class="vote-confirm-title">确认投票</div>
+            <div class="vote-confirm-message">
+                您确定要为这张作品投票吗？<br>
+                <strong>注意：每人只能投一次票，请慎重选择！</strong>
+            </div>
+            <div class="vote-confirm-buttons">
+                <button class="vote-confirm-btn cancel" onclick="hideVoteConfirm()">取消</button>
+                <button class="vote-confirm-btn confirm" onclick="confirmVote()">确认投票</button>
+            </div>
+        </div>
+    </div>
     <!-- 隐藏数据元素 -->
     <div id="user-data" 
          data-logged-in="{% if current_user %}true{% else %}false{% endif %}"
@@ -325,36 +424,83 @@
         const userLoggedIn = userData.getAttribute('data-logged-in') === 'true';
         const canVote = userData.getAttribute('data-can-vote') === 'true';
         
+        // 存储当前要投票的照片ID
+        let currentVotePhotoId = null;
+        
         function showModal(url) {
             const modal = document.getElementById('modal');
             const modalImg = document.getElementById('modal-img');
             modalImg.src = url;
             modal.classList.add('active');
         }
+        
         function hideModal() {
             document.getElementById('modal').classList.remove('active');
         }
+        
         function votePhoto(photoId) {
             if (canVote) {
-                fetch('/vote', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ photo_id: photoId })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                    } else {
-                        document.getElementById('vote-count-' + photoId).textContent = '票数：' + data.vote_count;
-                    }
-                });
+                // 显示确认弹窗
+                currentVotePhotoId = photoId;
+                showVoteConfirm();
             } else if (userLoggedIn) {
                 alert('您当前无法投票');
             } else {
                 alert('请先登录后再投票');
             }
         }
+        
+        function showVoteConfirm() {
+            document.getElementById('voteConfirmModal').classList.add('active');
+        }
+        
+        function hideVoteConfirm() {
+            document.getElementById('voteConfirmModal').classList.remove('active');
+            currentVotePhotoId = null;
+        }
+        
+        function confirmVote() {
+            if (currentVotePhotoId) {
+                // 执行实际的投票操作
+                fetch('/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ photo_id: currentVotePhotoId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        document.getElementById('vote-count-' + currentVotePhotoId).textContent = '票数：' + data.vote_count;
+                        // 可以在这里添加投票成功的提示
+                        showVoteSuccess();
+                    }
+                })
+                .catch(error => {
+                    console.error('投票失败:', error);
+                    alert('投票失败，请稍后重试');
+                })
+                .finally(() => {
+                    hideVoteConfirm();
+                });
+            }
+        }
+        
+        function showVoteSuccess() {
+            // 可以添加投票成功的提示
+            // 这里暂时用简单的alert，后续可以改为更美观的提示
+            setTimeout(() => {
+                alert('投票成功！');
+            }, 100);
+        }
+        
+        // 点击弹窗背景关闭弹窗
+        document.getElementById('voteConfirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideVoteConfirm();
+            }
+        });
     </script>
 </body>
 </html>
