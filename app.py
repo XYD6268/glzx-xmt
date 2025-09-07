@@ -16,9 +16,11 @@ db = SQLAlchemy(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    real_name = db.Column(db.String(50), unique=True, nullable=False)  # 真实姓名作为用户名
     password_hash = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    school_id = db.Column(db.String(20), unique=True, nullable=False)  # 校学号
+    qq_number = db.Column(db.String(15), nullable=False)  # QQ号
+    class_name = db.Column(db.String(50), nullable=False)  # 班级
     role = db.Column(db.Integer, default=1)  # 1=普通用户, 2=普通管理员, 3=系统管理员
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
@@ -121,22 +123,36 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
+        real_name = request.form['real_name']
+        school_id = request.form['school_id']
+        qq_number = request.form['qq_number']
         password = request.form['password']
+        class_name = request.form['class_name']
         
-        if User.query.filter_by(username=username).first():
-            flash('用户名已存在')
+        # 验证校学号是否为纯数字
+        if not school_id.isdigit():
+            flash('校学号必须为纯数字')
             return render_template('register.html')
         
-        if User.query.filter_by(email=email).first():
-            flash('邮箱已存在')
+        # 验证QQ号是否为纯数字且长度合理
+        if not qq_number.isdigit() or len(qq_number) < 5 or len(qq_number) > 15:
+            flash('QQ号必须为5-15位数字')
+            return render_template('register.html')
+        
+        if User.query.filter_by(real_name=real_name).first():
+            flash('该姓名已被注册')
+            return render_template('register.html')
+        
+        if User.query.filter_by(school_id=school_id).first():
+            flash('校学号已存在')
             return render_template('register.html')
         
         user = User(
-            username=username,
-            email=email,
+            real_name=real_name,
+            school_id=school_id,
+            qq_number=qq_number,
             password_hash=generate_password_hash(password),
+            class_name=class_name,
             role=1  # 默认为普通用户
         )
         db.session.add(user)
@@ -167,8 +183,20 @@ def vote():
 def upload():
     if request.method == 'POST':
         files = request.files.getlist('photos')
-        class_name = request.form['class_name']
-        student_name = request.form['student_name']
+        user_id = session.get('user_id')
+        
+        if not user_id:
+            flash('请先登录')
+            return redirect(url_for('login'))
+        
+        # 从当前用户获取班级和姓名
+        current_user = User.query.get(user_id)
+        if not current_user:
+            flash('用户不存在')
+            return redirect(url_for('login'))
+            
+        class_name = current_user.class_name
+        student_name = current_user.real_name
         
         uploaded_count = 0
         for file in files:
@@ -194,14 +222,25 @@ def upload():
                     url='/' + save_path.replace('\\', '/'), 
                     thumb_url='/' + thumb_path.replace('\\', '/'), 
                     class_name=class_name, 
-                    student_name=student_name
+                    student_name=student_name,
+                    user_id=user_id,
+                    status=0  # 待审核状态
                 )
                 db.session.add(photo)
                 uploaded_count += 1
         
         db.session.commit()
+        flash('照片上传成功，等待审核')
         return redirect(url_for('index'))
-    return render_template('upload.html')
+    
+    # GET请求时，传递用户信息到模板
+    user_id = session.get('user_id')
+    if user_id:
+        current_user = User.query.get(user_id)
+        return render_template('upload.html', current_user=current_user)
+    else:
+        flash('请先登录')
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

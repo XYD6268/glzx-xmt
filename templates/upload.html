@@ -130,13 +130,16 @@
     <div class="container">
         <a href="/" class="back-btn">← 返回主页</a>
         <h2>上传参赛照片</h2>
+        
+        <!-- 显示用户信息 -->
+        {% if current_user %}
+        <div style="background: #333; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+            <p style="margin: 4px 0; color: #ccc;"><strong>班级：</strong>{{ current_user.class_name }}</p>
+            <p style="margin: 4px 0; color: #ccc;"><strong>姓名：</strong>{{ current_user.real_name }}</p>
+        </div>
+        {% endif %}
+        
         <form method="post" enctype="multipart/form-data">
-            <label for="class_name">班级</label>
-            <input type="text" name="class_name" id="class_name" required>
-            
-            <label for="student_name">姓名</label>
-            <input type="text" name="student_name" id="student_name" required>
-            
             <label for="photos">选择照片（可多选）</label>
             <div class="file-upload">
                 <input type="file" name="photos" id="photos" accept="image/*" multiple required>

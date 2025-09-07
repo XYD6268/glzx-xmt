@@ -238,7 +238,7 @@
         <div class="user-nav">
             {% if current_user %}
                 <div class="user-info">
-                    欢迎，{{ current_user.username }} 
+                    欢迎，{{ current_user.real_name }} 
                     {% if current_user.role == 3 %}(系统管理员)
                     {% elif current_user.role == 2 %}(管理员)
                     {% else %}(用户)

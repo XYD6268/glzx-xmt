@@ -158,11 +158,13 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>用户名</th>
-                    <th>邮箱</th>
+                    <th>真实姓名</th>
+                    <th class="mobile-hide">班级</th>
+                    <th>校学号</th>
+                    <th class="mobile-hide">QQ号</th>
                     <th>角色</th>
                     <th>状态</th>
-                    <th>注册时间</th>
+                    <th class="mobile-hide">注册时间</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -170,8 +172,10 @@
                 {% for user in users %}
                 <tr>
                     <td>{{ user.id }}</td>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.email }}</td>
+                    <td>{{ user.real_name }}</td>
+                    <td class="mobile-hide">{{ user.class_name }}</td>
+                    <td>{{ user.school_id }}</td>
+                    <td class="mobile-hide">{{ user.qq_number }}</td>
                     <td>
                         <span class="role role-{{ user.role }}">
                             {% if user.role == 1 %}普通用户
@@ -185,7 +189,7 @@
                             {% if user.is_active %}正常{% else %}禁用{% endif %}
                         </span>
                     </td>
-                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}</td>
+                    <td class="mobile-hide">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}</td>
                     <td>
                         {% if user.role < 3 %}
                             <a href="{{ url_for('change_user_role', user_id=user.id, new_role=1) }}" class="btn">设为用户</a>

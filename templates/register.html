@@ -105,11 +105,17 @@
             {% endif %}
         {% endwith %}
         <form method="post">
-            <label for="username">用户名</label>
-            <input type="text" name="username" id="username" required>
+            <label for="real_name">真实姓名</label>
+            <input type="text" name="real_name" id="real_name" required placeholder="请输入您的真实姓名">
             
-            <label for="email">邮箱</label>
-            <input type="email" name="email" id="email" required>
+            <label for="class_name">班级</label>
+            <input type="text" name="class_name" id="class_name" required placeholder="例如：高三(1)班">
+            
+            <label for="school_id">校学号</label>
+            <input type="text" name="school_id" id="school_id" required placeholder="请输入您的校学号（纯数字）" pattern="[0-9]+" title="校学号必须为纯数字">
+            
+            <label for="qq_number">QQ号</label>
+            <input type="text" name="qq_number" id="qq_number" required placeholder="请输入您的QQ号" pattern="[0-9]{5,15}" title="QQ号必须为5-15位数字">
             
             <label for="password">密码</label>
             <input type="password" name="password" id="password" required>
