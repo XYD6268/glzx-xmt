@@ -13,11 +13,9 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: #fff;
-            margin: 0;
-            padding: 0;
+            color: #333;
         }
         
         .container {
@@ -35,11 +33,12 @@
             color: white;
             font-size: 2.5rem;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
         .nav {
-            background: #444;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 30px;
@@ -56,7 +55,7 @@
         }
         
         .nav a:hover {
-            background: #666;
+            background: rgba(255,255,255,0.2);
         }
         
         .stats-grid {
@@ -67,11 +66,11 @@
         }
         
         .stat-card {
-            background: #444;
+            background: rgba(255,255,255,0.95);
             padding: 20px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
         }
         
         .stat-number {
@@ -82,20 +81,21 @@
         }
         
         .stat-label {
-            color: #ccc;
+            color: #666;
             font-size: 0.9rem;
         }
         
         .main-content {
-            background: #222;
+            background: rgba(255,255,255,0.95);
             border-radius: 16px;
             padding: 30px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
         }
         
         .tabs {
             display: flex;
-            border-bottom: 2px solid #555;
+            border-bottom: 2px solid #eee;
             margin-bottom: 20px;
         }
         
@@ -105,7 +105,7 @@
             border: none;
             cursor: pointer;
             font-size: 1rem;
-            color: #ccc;
+            color: #666;
             border-bottom: 3px solid transparent;
             transition: all 0.2s;
         }
@@ -126,26 +126,25 @@
         .table-container {
             overflow-x: auto;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
-            background: #444;
+            background: white;
         }
         
         th, td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #555;
-            color: #fff;
+            border-bottom: 1px solid #eee;
         }
         
         th {
-            background: #333;
+            background: #f8f9fa;
             font-weight: 600;
-            color: #fff;
+            color: #333;
         }
         
         .status-badge {
@@ -195,21 +194,15 @@
         .search-box {
             width: 100%;
             padding: 12px;
-            border: 1px solid #555;
+            border: 1px solid #ddd;
             border-radius: 8px;
             margin-bottom: 20px;
             font-size: 1rem;
-            background: #333;
-            color: #fff;
-        }
-        
-        .search-box::placeholder {
-            color: #999;
         }
         
         .no-data {
             text-align: center;
-            color: #999;
+            color: #666;
             padding: 40px;
             font-style: italic;
         }
@@ -224,11 +217,6 @@
         
         .flash.error {
             background: #f44336;
-        }
-        
-        .warning-text {
-            color: #f44336;
-            font-weight: bold;
         }
         
         /* 响应式设计 */
@@ -256,12 +244,12 @@
             
             .tab {
                 text-align: left;
-                border-bottom: 1px solid #555;
+                border-bottom: 1px solid #eee;
                 border-right: none;
             }
             
             .tab.active {
-                border-bottom-color: #555;
+                border-bottom-color: #eee;
                 border-left: 3px solid #4caf50;
             }
             
@@ -308,14 +296,6 @@
                 <div class="stat-label">被封禁IP</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{{ ip_whitelist_count }}</div>
-                <div class="stat-label">IP白名单</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ user_whitelist_count }}</div>
-                <div class="stat-label">用户白名单</div>
-            </div>
-            <div class="stat-card">
                 <div class="stat-number">{{ total_login_records }}</div>
                 <div class="stat-label">登录记录</div>
             </div>
@@ -332,8 +312,6 @@
         <div class="main-content">
             <div class="tabs">
                 <button class="tab active" onclick="switchTab(event, 'banned-ips')">🚫 封禁IP列表</button>
-                <button class="tab" onclick="switchTab(event, 'ip-whitelist')">✅ IP白名单</button>
-                <button class="tab" onclick="switchTab(event, 'user-whitelist')">👤 用户白名单</button>
                 <button class="tab" onclick="switchTab(event, 'login-records')">📝 登录记录</button>
                 <button class="tab" onclick="switchTab(event, 'vote-analysis')">📊 投票分析</button>
             </div>
@@ -377,131 +355,6 @@
                             {% else %}
                             <tr>
                                 <td colspan="5" class="no-data">暂无封禁IP记录</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- IP白名单 -->
-            <div id="ip-whitelist" class="tab-content">
-                <div style="margin-bottom: 20px; padding: 16px; background: #2c2c2c; border-radius: 8px;">
-                    <h3 style="margin: 0 0 12px 0; color: #fff;">✅ 添加IP白名单</h3>
-                    <form method="post" action="{{ url_for('add_ip_whitelist') }}" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <label style="display: block; margin-bottom: 4px; color: #ccc; font-size: 0.9rem;">IP地址</label>
-                            <input type="text" name="ip_address" placeholder="例如: 192.168.1.100" required
-                                   style="width: 100%; padding: 8px; background: #444; border: 1px solid #666; border-radius: 4px; color: #fff;">
-                        </div>
-                        <div style="flex: 2; min-width: 250px;">
-                            <label style="display: block; margin-bottom: 4px; color: #ccc; font-size: 0.9rem;">备注说明</label>
-                            <input type="text" name="description" placeholder="说明此IP的用途或来源"
-                                   style="width: 100%; padding: 8px; background: #444; border: 1px solid #666; border-radius: 4px; color: #fff;">
-                        </div>
-                        <button type="submit" class="btn btn-unban" style="padding: 8px 16px;">添加白名单</button>
-                    </form>
-                </div>
-                
-                <input type="text" class="search-box" placeholder="搜索IP地址..." 
-                       onkeyup="filterTable(this, 'ip-whitelist-table')">
-                
-                <div class="table-container">
-                    <table id="ip-whitelist-table">
-                        <thead>
-                            <tr>
-                                <th>IP地址</th>
-                                <th>备注说明</th>
-                                <th>添加时间</th>
-                                <th>添加人</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for whitelist in ip_whitelists %}
-                            <tr>
-                                <td>{{ whitelist.ip_address }}</td>
-                                <td>{{ whitelist.description or '-' }}</td>
-                                <td>{{ whitelist.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                <td>{{ whitelist.creator.real_name }}</td>
-                                <td>
-                                    <form method="post" action="{{ url_for('remove_ip_whitelist', whitelist_id=whitelist.id) }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-ban" 
-                                                onclick="return confirm('确定要移除IP {{ whitelist.ip_address }} 的白名单吗？')">移除</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="no-data">暂无IP白名单</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- 用户白名单 -->
-            <div id="user-whitelist" class="tab-content">
-                <div style="margin-bottom: 20px; padding: 16px; background: #2c2c2c; border-radius: 8px;">
-                    <h3 style="margin: 0 0 12px 0; color: #fff;">👤 添加用户白名单</h3>
-                    <form method="post" action="{{ url_for('add_user_whitelist') }}" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <label style="display: block; margin-bottom: 4px; color: #ccc; font-size: 0.9rem;">选择用户</label>
-                            <select name="user_id" required
-                                    style="width: 100%; padding: 8px; background: #444; border: 1px solid #666; border-radius: 4px; color: #fff;">
-                                <option value="">请选择用户</option>
-                                {% for user in all_users %}
-                                    {% if not user.whitelist_entry %}
-                                    <option value="{{ user.id }}">{{ user.real_name }} ({{ user.school_id }})</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div style="flex: 2; min-width: 250px;">
-                            <label style="display: block; margin-bottom: 4px; color: #ccc; font-size: 0.9rem;">备注说明</label>
-                            <input type="text" name="description" placeholder="说明加入白名单的原因"
-                                   style="width: 100%; padding: 8px; background: #444; border: 1px solid #666; border-radius: 4px; color: #fff;">
-                        </div>
-                        <button type="submit" class="btn btn-unban" style="padding: 8px 16px;">添加白名单</button>
-                    </form>
-                </div>
-                
-                <input type="text" class="search-box" placeholder="搜索用户..." 
-                       onkeyup="filterTable(this, 'user-whitelist-table')">
-                
-                <div class="table-container">
-                    <table id="user-whitelist-table">
-                        <thead>
-                            <tr>
-                                <th>用户</th>
-                                <th>校学号</th>
-                                <th>班级</th>
-                                <th>备注说明</th>
-                                <th>添加时间</th>
-                                <th>添加人</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for whitelist in user_whitelists %}
-                            <tr>
-                                <td>{{ whitelist.user.real_name }}</td>
-                                <td>{{ whitelist.user.school_id }}</td>
-                                <td>{{ whitelist.user.class_name }}</td>
-                                <td>{{ whitelist.description or '-' }}</td>
-                                <td>{{ whitelist.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                <td>{{ whitelist.creator.real_name }}</td>
-                                <td>
-                                    <form method="post" action="{{ url_for('remove_user_whitelist', whitelist_id=whitelist.id) }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-ban" 
-                                                onclick="return confirm('确定要移除用户 {{ whitelist.user.real_name }} 的白名单吗？')">移除</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="7" class="no-data">暂无用户白名单</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -574,14 +427,14 @@
                             <tr>
                                 <td>{{ analysis.ip_address }}</td>
                                 <td>
-                                    <span class="{% if analysis.vote_count > settings.max_votes_per_ip %}warning-text{% endif %}">
+                                    <span style="{% if analysis.vote_count > settings.max_votes_per_ip %}color: #f44336; font-weight: bold;{% endif %}">
                                         {{ analysis.vote_count }}
                                         {% if analysis.vote_count > settings.max_votes_per_ip %}⚠️{% endif %}
                                     </span>
                                 </td>
                                 <td>{{ analysis.last_vote_time.strftime('%Y-%m-%d %H:%M:%S') if analysis.last_vote_time else '-' }}</td>
                                 <td>
-                                    <span class="{% if analysis.user_count > settings.max_accounts_per_ip %}warning-text{% endif %}">
+                                    <span style="{% if analysis.user_count > settings.max_accounts_per_ip %}color: #f44336; font-weight: bold;{% endif %}">
                                         {{ analysis.user_count }}
                                         {% if analysis.user_count > settings.max_accounts_per_ip %}⚠️{% endif %}
                                     </span>
