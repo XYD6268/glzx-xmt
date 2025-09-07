@@ -13,7 +13,7 @@
             padding: 0;
         }
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 32px auto;
             padding: 24px;
             background: #222;
@@ -22,7 +22,7 @@
         }
         .title {
             text-align: center;
-            font-size: 2rem;
+            font-size: clamp(1.5rem, 4vw, 2rem);
             margin-bottom: 24px;
         }
         .nav-btn {
@@ -42,6 +42,23 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 16px;
+            overflow-x: auto;
+            display: block;
+            white-space: nowrap;
+        }
+        thead, tbody, tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+        thead {
+            width: calc(100% - 1em);
+        }
+        tbody {
+            display: block;
+            max-height: 60vh;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         th, td {
             padding: 12px;
@@ -100,25 +117,29 @@
             border-radius: 4px;
             margin-bottom: 16px;
         }
-        @media (max-width: 600px) {
+        /* 响应式设计 */
+        .mobile-hide {
+            display: table-cell;
+        }
+        
+        @media (max-width: 1000px) {
             .container {
-                max-width: 95vw;
+                max-width: 95%;
                 margin: 20px auto;
-                padding: 20px;
             }
-            .title {
-                font-size: 1.5rem;
-                margin-bottom: 20px;
+            table {
+                font-size: 0.9rem;
             }
-            .nav-btn {
-                display: block;
-                width: 100%;
-                margin: 8px 0;
-                padding: 12px;
-                font-size: 1rem;
-                text-align: center;
-                min-height: 44px;
-                box-sizing: border-box;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                max-width: 98vw;
+                margin: 16px auto;
+                padding: 16px;
+            }
+            .mobile-hide {
+                display: none;
             }
             table {
                 font-size: 0.8rem;
@@ -127,16 +148,60 @@
                 padding: 8px 4px;
             }
             .btn {
-                padding: 6px 8px;
+                padding: 4px 6px;
                 font-size: 0.7rem;
                 margin: 1px;
-                min-height: 32px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px auto;
+                padding: 12px;
+            }
+            .nav-btn {
+                display: block;
+                width: 100%;
+                margin: 8px 0;
+                padding: 12px;
+                font-size: 0.9rem;
+                text-align: center;
+            }
+            table {
+                font-size: 0.7rem;
+            }
+            th, td {
+                padding: 6px 3px;
+            }
+            .btn {
+                padding: 3px 5px;
+                font-size: 0.6rem;
+                margin: 1px;
+            }
+            .role, .status {
+                font-size: 0.6rem;
+                padding: 2px 4px;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .container {
+                margin: 8px auto;
+                padding: 8px;
+            }
+            table {
+                font-size: 0.6rem;
+            }
+            th, td {
+                padding: 4px 2px;
+            }
+
             }
             /* 在移动端隐藏某些列以节省空间 */
             .mobile-hide {
                 display: none;
             }
-        }
+
     </style>
 </head>
 <body>

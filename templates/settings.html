@@ -13,7 +13,7 @@
             padding: 0;
         }
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 32px auto;
             padding: 24px;
             background: #222;
@@ -22,7 +22,7 @@
         }
         .title {
             text-align: center;
-            font-size: 2rem;
+            font-size: clamp(1.5rem, 4vw, 2rem);
             margin-bottom: 24px;
         }
         .nav-btn {
@@ -84,20 +84,45 @@
             border-radius: 4px;
             margin-bottom: 16px;
         }
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .container {
-                max-width: 95vw;
+                max-width: 95%;
                 margin: 20px auto;
                 padding: 20px;
             }
-            .title {
-                font-size: 1.5rem;
-                margin-bottom: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                max-width: 98vw;
+                margin: 16px auto;
+                padding: 16px;
             }
             .nav-btn {
                 display: block;
                 width: 100%;
                 margin: 8px 0;
+                text-align: center;
+            }
+            input[type="text"] {
+                padding: 12px;
+                font-size: 16px; /* 防止iOS缩放 */
+            }
+            .btn {
+                padding: 14px;
+                font-size: 1rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .container {
+                margin: 8px auto;
+                padding: 12px;
+            }
+            .checkbox-group label {
+                font-size: 0.9rem;
+            }
+            .nav-btn {
                 padding: 12px;
                 font-size: 1rem;
                 text-align: center;
@@ -147,6 +172,16 @@
                     <input type="checkbox" name="allow_vote" {% if settings.allow_vote %}checked{% endif %}>
                     允许用户投票
                 </label>
+            </div>
+            
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="one_vote_per_user" {% if settings.one_vote_per_user %}checked{% endif %}>
+                    限制每个用户只能投一次票
+                </label>
+                <small style="color: #888; font-size: 0.8rem; margin-left: 24px; display: block;">
+                    启用此选项后，每个用户在整个投票期间只能为一个作品投票
+                </small>
             </div>
             
             <button class="btn" type="submit">保存设置</button>

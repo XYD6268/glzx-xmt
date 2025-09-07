@@ -13,7 +13,7 @@
             padding: 0;
         }
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 32px auto;
             padding: 16px;
             background: #222;
@@ -22,13 +22,13 @@
         }
         .title {
             text-align: center;
-            font-size: 2rem;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
             margin-bottom: 24px;
             letter-spacing: 2px;
         }
         .nav-btn {
             display: block;
-            width: 200px;
+            width: min(300px, 80%);
             margin: 0 auto 24px auto;
             padding: 10px;
             background: #444;
@@ -70,7 +70,7 @@
         }
         .photo-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 18px;
             margin-bottom: 24px;
         }
@@ -133,9 +133,37 @@
         .photo-vote-btn:hover {
             background: #666;
         }
-        @media (max-width: 900px) {
+        .photo-vote-btn:disabled {
+            background: #666;
+            color: #aaa;
+            cursor: not-allowed;
+        }
+        .photo-vote-btn.voted {
+            background: #4caf50;
+            color: white;
+        }
+        .photo-vote-btn.voted:hover {
+            background: #45a049;
+        }
+        /* 响应式断点 */
+        @media (max-width: 1200px) {
+            .container {
+                max-width: 95%;
+                margin: 20px auto;
+            }
             .photo-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 16px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                margin: 16px auto;
+                padding: 12px;
+            }
+            .photo-grid {
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
                 gap: 12px;
             }
             .user-nav {
@@ -146,26 +174,22 @@
             .user-links {
                 justify-content: center;
                 flex-wrap: wrap;
+                gap: 8px;
+            }
+            .nav-btn {
+                width: 100%;
+                margin-bottom: 16px;
+                padding: 12px;
             }
         }
         @media (max-width: 600px) {
             .container { 
                 max-width: 98vw; 
-                margin: 16px auto;
-                padding: 12px;
-            }
-            .title { 
-                font-size: 1.5rem; 
-                margin-bottom: 16px;
-            }
-            .nav-btn {
-                width: 100%;
-                max-width: none;
-                margin-bottom: 16px;
-                padding: 12px;
+                margin: 8px auto;
+                padding: 8px;
             }
             .photo-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
                 gap: 8px;
             }
             .photo-item {
@@ -173,7 +197,7 @@
             }
             .photo-item img {
                 max-width: 100%;
-                max-height: 25vw;
+                max-height: 30vw;
             }
             .photo-title {
                 font-size: 0.9rem;
@@ -198,6 +222,46 @@
             .user-links a {
                 padding: 8px 6px;
                 font-size: 0.8rem;
+            }
+            .vote-confirm-content {
+                padding: 20px;
+                max-width: 90%;
+            }
+            .vote-confirm-title {
+                font-size: 1.1rem;
+                margin-bottom: 12px;
+            }
+            .vote-confirm-message {
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            }
+            .vote-confirm-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .vote-confirm-btn {
+                width: 100%;
+                padding: 12px;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .photo-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 6px;
+            }
+            .photo-item {
+                padding: 4px;
+            }
+            .photo-title {
+                font-size: 0.8rem;
+            }
+            .photo-info, .photo-vote-row {
+                font-size: 0.7rem;
+            }
+            .photo-vote-btn {
+                font-size: 0.8rem;
+                padding: 4px;
             }
         }
         .info-row {
@@ -388,7 +452,15 @@
                 <div class="photo-vote-row">
                     <span id="vote-count-{{ photo.id }}">票数：{{ photo.vote_count }}</span>
                 </div>
-                <button class="photo-vote-btn" onclick="votePhoto('{{ photo.id }}')">投票</button>
+                {% if one_vote_per_user and user_has_voted %}
+                    {% if user_voted_photo_id == photo.id %}
+                        <button class="photo-vote-btn voted" disabled>已投票</button>
+                    {% else %}
+                        <button class="photo-vote-btn" disabled>已投其他作品</button>
+                    {% endif %}
+                {% else %}
+                    <button class="photo-vote-btn" onclick="votePhoto('{{ photo.id }}')">投票</button>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -402,9 +474,9 @@
     <div class="vote-confirm-modal" id="voteConfirmModal">
         <div class="vote-confirm-content">
             <div class="vote-confirm-title">确认投票</div>
-            <div class="vote-confirm-message">
+            <div class="vote-confirm-message" id="voteConfirmMessage">
                 您确定要为这张作品投票吗？<br>
-                <strong>注意：每人只能投一次票，请慎重选择！</strong>
+                <strong>注意：投票后无法撤销，请慎重选择！</strong>
             </div>
             <div class="vote-confirm-buttons">
                 <button class="vote-confirm-btn cancel" onclick="hideVoteConfirm()">取消</button>
@@ -416,6 +488,8 @@
     <div id="user-data" 
          data-logged-in="{% if current_user %}true{% else %}false{% endif %}"
          data-can-vote="{% if current_user and allow_vote %}true{% else %}false{% endif %}"
+         data-one-vote-per-user="{% if one_vote_per_user %}true{% else %}false{% endif %}"
+         data-user-has-voted="{% if user_has_voted %}true{% else %}false{% endif %}"
          style="display: none;"></div>
     
     <script>
@@ -423,6 +497,8 @@
         const userData = document.getElementById('user-data');
         const userLoggedIn = userData.getAttribute('data-logged-in') === 'true';
         const canVote = userData.getAttribute('data-can-vote') === 'true';
+        const oneVotePerUser = userData.getAttribute('data-one-vote-per-user') === 'true';
+        const userHasVoted = userData.getAttribute('data-user-has-voted') === 'true';
         
         // 存储当前要投票的照片ID
         let currentVotePhotoId = null;
@@ -440,6 +516,20 @@
         
         function votePhoto(photoId) {
             if (canVote) {
+                // 更新确认弹窗的消息
+                const confirmMessage = document.getElementById('voteConfirmMessage');
+                if (oneVotePerUser) {
+                    confirmMessage.innerHTML = `
+                        您确定要为这张作品投票吗？<br>
+                        <strong>注意：每人只能投一次票，投票后无法更改，请慎重选择！</strong>
+                    `;
+                } else {
+                    confirmMessage.innerHTML = `
+                        您确定要为这张作品投票吗？<br>
+                        <strong>注意：投票后无法撤销，请慎重选择！</strong>
+                    `;
+                }
+                
                 // 显示确认弹窗
                 currentVotePhotoId = photoId;
                 showVoteConfirm();
@@ -473,7 +563,12 @@
                         alert(data.error);
                     } else {
                         document.getElementById('vote-count-' + currentVotePhotoId).textContent = '票数：' + data.vote_count;
-                        // 可以在这里添加投票成功的提示
+                        
+                        // 如果启用了"每人只能投一票"，更新所有按钮状态
+                        if (oneVotePerUser) {
+                            updateAllVoteButtons(currentVotePhotoId);
+                        }
+                        
                         showVoteSuccess();
                     }
                 })
@@ -485,6 +580,26 @@
                     hideVoteConfirm();
                 });
             }
+        }
+        
+        function updateAllVoteButtons(votedPhotoId) {
+            // 获取所有投票按钮
+            const allVoteButtons = document.querySelectorAll('.photo-vote-btn');
+            allVoteButtons.forEach(button => {
+                const photoId = button.getAttribute('onclick')?.match(/votePhoto\('(\d+)'\)/)?.[1];
+                if (photoId === votedPhotoId) {
+                    // 已投票的按钮
+                    button.textContent = '已投票';
+                    button.classList.add('voted');
+                    button.disabled = true;
+                    button.removeAttribute('onclick');
+                } else {
+                    // 其他按钮
+                    button.textContent = '已投其他作品';
+                    button.disabled = true;
+                    button.removeAttribute('onclick');
+                }
+            });
         }
         
         function showVoteSuccess() {

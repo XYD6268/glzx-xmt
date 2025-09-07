@@ -55,6 +55,7 @@ class Settings(db.Model):
     contest_title = db.Column(db.String(100), default="2025年摄影比赛")
     allow_upload = db.Column(db.Boolean, default=True)
     allow_vote = db.Column(db.Boolean, default=True)
+    one_vote_per_user = db.Column(db.Boolean, default=False)  # 限制每个用户只能投一次票
 
 # 权限装饰器
 def login_required(f):
@@ -102,13 +103,26 @@ def index():
     photos = Photo.query.filter_by(status=1).all()  # 只显示已审核通过的照片
     settings = get_settings()
     current_user = None
+    user_has_voted = False
+    user_voted_photo_id = None
+    
     if 'user_id' in session:
         current_user = User.query.get(session['user_id'])
+        # 检查用户是否已经投过票
+        if settings.one_vote_per_user:
+            existing_vote = Vote.query.filter_by(user_id=current_user.id).first()
+            if existing_vote:
+                user_has_voted = True
+                user_voted_photo_id = existing_vote.photo_id
+    
     return render_template('index.html', 
                          contest_title=settings.contest_title, 
                          photos=photos, 
                          current_user=current_user,
-                         allow_vote=settings.allow_vote)
+                         allow_vote=settings.allow_vote,
+                         one_vote_per_user=settings.one_vote_per_user,
+                         user_has_voted=user_has_voted,
+                         user_voted_photo_id=user_voted_photo_id)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -182,10 +196,16 @@ def vote():
     photo_id = data.get('photo_id')
     user_id = session['user_id']
     
-    # 检查是否已经投过票
+    # 检查是否已经对此照片投过票
     existing_vote = Vote.query.filter_by(user_id=user_id, photo_id=photo_id).first()
     if existing_vote:
-        return jsonify({'error': '您已经投过票了'}), 400
+        return jsonify({'error': '您已经为此作品投过票了'}), 400
+    
+    # 如果启用了"每人只能投一票"限制，检查用户是否已经投过任何票
+    if settings.one_vote_per_user:
+        any_vote = Vote.query.filter_by(user_id=user_id).first()
+        if any_vote:
+            return jsonify({'error': '您已经投过票了，每人只能投一次票'}), 400
     
     photo = Photo.query.get(photo_id)
     if photo and photo.status == 1:  # 只能给已审核通过的照片投票
@@ -370,6 +390,7 @@ def settings():
         settings.contest_title = request.form['contest_title']
         settings.allow_upload = 'allow_upload' in request.form
         settings.allow_vote = 'allow_vote' in request.form
+        settings.one_vote_per_user = 'one_vote_per_user' in request.form
         db.session.commit()
         flash('设置保存成功')
         return redirect(url_for('settings'))
