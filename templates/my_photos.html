@@ -13,21 +13,30 @@
             padding: 0;
         }
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 32px auto;
             padding: 16px;
             background: #222;
             border-radius: 12px;
             box-shadow: 0 2px 8px #0006;
         }
-        .title {
-            text-align: center;
-            font-size: 2rem;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #444;
+        }
+        .title {
+            font-size: 2rem;
+            margin: 0;
+        }
+        .nav-links {
+            display: flex;
+            gap: 12px;
         }
         .nav-btn {
-            display: inline-block;
-            margin: 0 8px 16px 0;
             padding: 8px 16px;
             background: #444;
             color: #fff;
@@ -35,51 +44,160 @@
             border-radius: 6px;
             transition: background 0.2s;
         }
-        .nav-btn:hover {
+        .nav-btn:hover, .nav-btn.active {
             background: #666;
         }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #333;
+            border-radius: 8px;
+        }
+        .view-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #555;
+            color: white;
+            transition: background 0.2s;
+        }
+        .btn:hover, .btn.active {
+            background: #777;
+        }
+        .btn.active {
+            background: #007bff;
+        }
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ccc;
+            font-size: 1.1rem;
+        }
+        
+        /* 网格视图样式 */
         .photo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 18px;
             margin-bottom: 24px;
         }
         .photo-item {
-            background: #181818;
+            background: #2a2a2a;
             border-radius: 8px;
-            padding: 8px;
-            box-shadow: 0 1px 4px #0004;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .photo-item:hover {
+            transform: translateY(-2px);
         }
         .photo-item img {
             width: 100%;
-            border-radius: 8px;
+            max-width: 180px;
+            max-height: 120px;
+            border-radius: 6px;
             cursor: pointer;
+            margin-bottom: 12px;
+            object-fit: cover;
         }
         .photo-info {
-            padding: 8px 0;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .photo-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
             font-size: 0.9rem;
         }
-        .status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin: 4px 0;
+        .photo-status {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 8px;
         }
-        .status-pending { background: #ff9800; }
-        .status-approved { background: #4caf50; }
-        .status-rejected { background: #f44336; }
-        .delete-btn {
-            background: #d32f2f;
-            color: white;
-            border: none;
-            padding: 4px 8px;
+        .status-pending { color: #ff9800; font-weight: bold; }
+        .status-approved { color: #4caf50; font-weight: bold; }
+        .status-rejected { color: #f44336; font-weight: bold; }
+        
+        /* 列表视图样式 */
+        .photo-list {
+            display: none;
+        }
+        .photo-list.active {
+            display: block;
+        }
+        .list-header {
+            display: grid;
+            grid-template-columns: 100px 120px 100px 80px 80px 80px 120px;
+            gap: 10px;
+            padding: 12px;
+            background: #333;
+            border-radius: 6px 6px 0 0;
+            font-weight: bold;
+            border-bottom: 1px solid #555;
+        }
+        .list-item {
+            display: grid;
+            grid-template-columns: 100px 120px 100px 80px 80px 80px 120px;
+            gap: 10px;
+            padding: 12px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #444;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .list-item:hover {
+            background: #333;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+            border-radius: 0 0 6px 6px;
+        }
+        .list-thumb {
+            width: 80px;
+            height: 60px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.8rem;
+            object-fit: cover;
         }
-        .delete-btn:hover {
-            background: #b71c1c;
+        
+        /* 大图弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
         }
+        .modal img {
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .modal.active {
+            display: flex;
+        }
+        
         .flash {
             background: #4caf50;
             color: white;
@@ -87,58 +205,79 @@
             border-radius: 4px;
             margin-bottom: 16px;
         }
-        @media (max-width: 600px) {
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+            font-size: 1.1rem;
+        }
+        .empty-state h3 {
+            color: #ccc;
+            margin-bottom: 16px;
+        }
+        .upload-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .upload-link:hover {
+            background: #0056b3;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
             .container {
                 max-width: 95vw;
                 margin: 20px auto;
-                padding: 20px;
-            }
-            .title {
-                font-size: 1.5rem;
-                margin-bottom: 20px;
-            }
-            .nav-btn {
-                display: block;
-                width: 100%;
-                margin: 8px 0;
                 padding: 12px;
-                font-size: 1rem;
-                text-align: center;
-                min-height: 44px;
-                box-sizing: border-box;
+            }
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+            .nav-links {
+                justify-content: center;
+            }
+            .controls {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+            .view-controls, .sort-controls {
+                justify-content: center;
+                flex-wrap: wrap;
             }
             .photo-grid {
-                grid-template-columns: 1fr;
-                gap: 16px;
-                margin-top: 20px;
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 12px;
             }
-            .photo-card {
-                padding: 16px;
-            }
-            .photo-card img {
-                max-height: 150px;
-            }
-            .photo-meta {
-                font-size: 0.9rem;
-            }
-            .status {
+            .list-header, .list-item {
+                grid-template-columns: 80px 1fr 80px 60px 100px;
                 font-size: 0.8rem;
-                padding: 6px 10px;
             }
-            .delete-btn {
-                padding: 8px 12px;
-                font-size: 0.9rem;
-                min-height: 36px;
+            .list-thumb {
+                width: 60px;
+                height: 45px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="title">我的照片</div>
-        
-        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
-        <a href="{{ url_for('upload') }}" class="nav-btn">上传新照片</a>
+        <div class="header">
+            <h1 class="title">我的照片</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+                <a href="{{ url_for('upload') }}" class="nav-btn">上传照片</a>
+            </div>
+        </div>
         
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -148,40 +287,196 @@
             {% endif %}
         {% endwith %}
         
-        <div class="photo-grid">
-            {% for photo in photos %}
-            <div class="photo-item">
-                <img src="{{ photo.thumb_url }}" alt="我的照片">
+        {% if my_photos %}
+        <div class="controls">
+            <div class="view-controls">
+                <span>视图方式：</span>
+                <button class="btn active" onclick="switchView('grid')">网格视图</button>
+                <button class="btn" onclick="switchView('list')">列表视图</button>
+            </div>
+            <div class="sort-controls">
+                <span>排序方式：</span>
+                <button class="btn active" onclick="sortPhotos('time')">按时间</button>
+                <button class="btn" onclick="sortPhotos('votes')">按票数</button>
+                <button class="btn" onclick="sortPhotos('status')">按状态</button>
+            </div>
+        </div>
+        
+        <div class="stats">
+            共 {{ my_photos|length }} 张照片 | 
+            已通过: {{ my_photos|selectattr("status", "equalto", 1)|list|length }} | 
+            待审核: {{ my_photos|selectattr("status", "equalto", 0)|list|length }} | 
+            已拒绝: {{ my_photos|selectattr("status", "equalto", 2)|list|length }}
+        </div>
+        
+        <!-- 网格视图 -->
+        <div id="grid-view" class="photo-grid">
+            {% for photo in my_photos %}
+            <div class="photo-item" data-votes="{{ photo.vote_count }}" data-time="{{ photo.created_at.timestamp() if photo.created_at else 0 }}" data-status="{{ photo.status }}">
+                <img src="{{ photo.thumb_url }}" alt="我的照片" onclick="showModal('{{ photo.url }}')">
                 <div class="photo-info">
-                    <strong>{{ photo.class_name }} - {{ photo.student_name }}</strong><br>
-                    票数: {{ photo.vote_count }}
-                    <div class="status 
-                        {% if photo.status == 0 %}status-pending
-                        {% elif photo.status == 1 %}status-approved
-                        {% else %}status-rejected
-                        {% endif %}">
-                        {% if photo.status == 0 %}待审核
-                        {% elif photo.status == 1 %}已通过
-                        {% else %}已拒绝
-                        {% endif %}
+                    {% if photo.title %}
+                    <div class="photo-info-row">
+                        <span style="font-weight: bold; color: #fff;">{{ photo.title }}</span>
                     </div>
-                    <button class="delete-btn" onclick="deletePhoto('{{ photo.id }}')">删除</button>
+                    {% endif %}
+                    <div class="photo-info-row">
+                        <span>班级：{{ photo.class_name }}</span>
+                        <span>票数：{{ photo.vote_count }}</span>
+                    </div>
+                    <div class="photo-info-row">
+                        <span>ID：#{{ photo.id }}</span>
+                        <span>时间：{{ photo.created_at.strftime('%m-%d %H:%M') if photo.created_at else '' }}</span>
+                    </div>
+                </div>
+                <div class="photo-status">
+                    {% if photo.status == 0 %}
+                        <span class="status-pending">待审核</span>
+                    {% elif photo.status == 1 %}
+                        <span class="status-approved">已通过</span>
+                    {% else %}
+                        <span class="status-rejected">已拒绝</span>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
         
-        {% if not photos %}
-        <p style="text-align: center; color: #888;">您还没有上传任何照片</p>
+        <!-- 列表视图 -->
+        <div id="list-view" class="photo-list">
+            <div class="list-header">
+                <div>缩略图</div>
+                <div>作品名称</div>
+                <div>班级</div>
+                <div>票数</div>
+                <div>状态</div>
+                <div>ID</div>
+                <div>上传时间</div>
+            </div>
+            {% for photo in my_photos %}
+            <div class="list-item" data-votes="{{ photo.vote_count }}" data-time="{{ photo.created_at.timestamp() if photo.created_at else 0 }}" data-status="{{ photo.status }}">
+                <img src="{{ photo.thumb_url }}" alt="缩略图" class="list-thumb" onclick="showModal('{{ photo.url }}')">
+                <div>{{ photo.title or '未命名' }}</div>
+                <div>{{ photo.class_name }}</div>
+                <div>{{ photo.vote_count }}</div>
+                <div>
+                    {% if photo.status == 0 %}
+                        <span class="status-pending">待审核</span>
+                    {% elif photo.status == 1 %}
+                        <span class="status-approved">已通过</span>
+                    {% else %}
+                        <span class="status-rejected">已拒绝</span>
+                    {% endif %}
+                </div>
+                <div>#{{ photo.id }}</div>
+                <div>{{ photo.created_at.strftime('%m-%d %H:%M') if photo.created_at else '' }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h3>📷 还没有上传照片</h3>
+            <p>您还没有上传任何照片到摄影比赛</p>
+            <p>快去上传您的精彩作品吧！</p>
+            <a href="{{ url_for('upload') }}" class="upload-link">立即上传</a>
+        </div>
         {% endif %}
     </div>
     
+    <!-- 大图弹窗 -->
+    <div class="modal" id="modal" onclick="hideModal()">
+        <img id="modal-img" src="" alt="原图预览">
+    </div>
+    
     <script>
-        function deletePhoto(photoId) {
-            if (confirm('确定删除此照片？')) {
-                location.href = '/delete_photo/' + photoId;
+        let currentView = 'grid';
+        let currentSort = 'time';
+        
+        function switchView(view) {
+            // 更新按钮状态
+            document.querySelectorAll('.view-controls .btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 切换视图
+            const gridView = document.getElementById('grid-view');
+            const listView = document.getElementById('list-view');
+            
+            if (view === 'grid') {
+                gridView.style.display = 'grid';
+                listView.classList.remove('active');
+                currentView = 'grid';
+            } else {
+                gridView.style.display = 'none';
+                listView.classList.add('active');
+                currentView = 'list';
             }
         }
+        
+        function sortPhotos(sortBy) {
+            // 更新按钮状态
+            document.querySelectorAll('.sort-controls .btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            currentSort = sortBy;
+            
+            // 获取所有照片项目
+            const gridItems = Array.from(document.querySelectorAll('#grid-view .photo-item'));
+            const listItems = Array.from(document.querySelectorAll('#list-view .list-item'));
+            
+            // 排序函数
+            const sortFunction = (a, b) => {
+                if (sortBy === 'votes') {
+                    return parseInt(b.dataset.votes) - parseInt(a.dataset.votes);
+                } else if (sortBy === 'time') {
+                    return parseFloat(b.dataset.time) - parseFloat(a.dataset.time);
+                } else if (sortBy === 'status') {
+                    // 状态排序：已通过(1) > 待审核(0) > 已拒绝(2)
+                    const statusOrder = { '1': 3, '0': 2, '2': 1 };
+                    return statusOrder[b.dataset.status] - statusOrder[a.dataset.status];
+                }
+                return 0;
+            };
+            
+            // 排序并重新插入
+            gridItems.sort(sortFunction);
+            listItems.sort(sortFunction);
+            
+            const gridContainer = document.getElementById('grid-view');
+            const listContainer = document.querySelector('#list-view');
+            const listHeader = listContainer.querySelector('.list-header');
+            
+            // 清空并重新插入网格项目
+            gridContainer.innerHTML = '';
+            gridItems.forEach(item => gridContainer.appendChild(item));
+            
+            // 清空并重新插入列表项目
+            listContainer.innerHTML = '';
+            listContainer.appendChild(listHeader);
+            listItems.forEach(item => listContainer.appendChild(item));
+        }
+        
+        function showModal(url) {
+            const modal = document.getElementById('modal');
+            const modalImg = document.getElementById('modal-img');
+            modalImg.src = url;
+            modal.classList.add('active');
+        }
+        
+        function hideModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideModal();
+            }
+        });
+        
+        // 初始排序
+        document.addEventListener('DOMContentLoaded', function() {
+            sortPhotos('time');
+        });
     </script>
 </body>
 </html>

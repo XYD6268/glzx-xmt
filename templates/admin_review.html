@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片审核</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 16px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #444;
+        }
+        .title {
+            font-size: 2rem;
+            margin: 0;
+        }
+        .nav-links {
+            display: flex;
+            gap: 12px;
+        }
+        .nav-btn {
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover, .nav-btn.active {
+            background: #666;
+        }
+        .stats {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ccc;
+            font-size: 1.1rem;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+        .photo-item {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .photo-item:hover {
+            transform: translateY(-2px);
+        }
+        .photo-item img {
+            width: 100%;
+            max-width: 180px;
+            max-height: 120px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            object-fit: cover;
+        }
+        .photo-info {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #ccc;
+        }
+        .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-approve {
+            background: #4caf50;
+            color: white;
+        }
+        .btn-approve:hover {
+            background: #45a049;
+        }
+        .btn-reject {
+            background: #f44336;
+            color: white;
+        }
+        .btn-reject:hover {
+            background: #da190b;
+        }
+        .btn-delete {
+            background: #d32f2f;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #b71c1c;
+        }
+        
+        /* 大图弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal img {
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .modal.active {
+            display: flex;
+        }
+        
+        .flash {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 95vw;
+                margin: 20px auto;
+                padding: 12px;
+            }
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+            .nav-links {
+                justify-content: center;
+            }
+            .photo-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 12px;
+            }
+            .photo-item {
+                padding: 12px;
+            }
+            .actions {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+                margin: 2px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">照片审核</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+                <a href="{{ url_for('admin') }}" class="nav-btn">管理面板</a>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="stats">
+            待审核照片: {{ pending_photos|length }} 张
+        </div>
+        
+        {% if pending_photos %}
+        <div class="photo-grid">
+            {% for photo in pending_photos %}
+            <div class="photo-item">
+                <img src="{{ photo.thumb_url }}" alt="待审核照片" onclick="showModal('{{ photo.url }}')">
+                <div class="photo-info">
+                    <div class="info-row">
+                        <span class="info-label">提交人:</span>
+                        <span>{{ photo.student_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">班级:</span>
+                        <span>{{ photo.class_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">学号:</span>
+                        <span>{{ photo.user.school_id }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">提交时间:</span>
+                        <span>{{ photo.created_at.strftime('%Y-%m-%d %H:%M') if photo.created_at else '' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">照片ID:</span>
+                        <span>#{{ photo.id }}</span>
+                    </div>
+                </div>
+                <div class="actions">
+                    <a href="{{ url_for('approve_photo', photo_id=photo.id) }}" class="btn btn-approve">通过</a>
+                    <a href="{{ url_for('reject_photo', photo_id=photo.id) }}" class="btn btn-reject">拒绝</a>
+                    <a href="{{ url_for('admin_delete_photo', photo_id=photo.id) }}" class="btn btn-delete" 
+                       onclick="return confirm('确定删除此照片？这个操作不可恢复！')">删除</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>🎉 所有照片都已审核完成！</p>
+            <p>暂无待审核的照片</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 大图弹窗 -->
+    <div class="modal" id="modal" onclick="hideModal()">
+        <img id="modal-img" src="" alt="原图预览">
+    </div>
+    
+    <script>
+        function showModal(url) {
+            const modal = document.getElementById('modal');
+            const modalImg = document.getElementById('modal-img');
+            modalImg.src = url;
+            modal.classList.add('active');
+        }
+        
+        function hideModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideModal();
+            }
+        });
+    </script>
+</body>
+</html>

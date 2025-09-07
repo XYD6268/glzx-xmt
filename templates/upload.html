@@ -13,7 +13,7 @@
             padding: 0;
         }
         .container {
-            max-width: 500px;
+            max-width: 800px;
             margin: 48px auto;
             padding: 24px;
             background: #222;
@@ -24,18 +24,28 @@
             text-align: center;
             margin-bottom: 24px;
         }
-        label {
-            display: block;
-            margin-bottom: 8px;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
+        .back-btn {
+            display: inline-block;
             margin-bottom: 16px;
-            border-radius: 6px;
-            border: none;
-            background: #333;
+            padding: 8px 16px;
+            background: #444;
             color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .back-btn:hover {
+            background: #666;
+        }
+        .user-info {
+            background: #333;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .user-info p {
+            margin: 4px 0;
+            color: #ccc;
         }
         .file-upload {
             border: 2px dashed #666;
@@ -44,84 +54,113 @@
             text-align: center;
             margin-bottom: 16px;
             background: #333;
+            transition: border-color 0.2s;
         }
         .file-upload:hover {
             border-color: #888;
         }
-        .file-list {
-            margin-top: 10px;
-            font-size: 0.9rem;
+        .file-upload.dragover {
+            border-color: #007bff;
+            background: #3a3a3a;
         }
-        .file-item {
-            padding: 4px 0;
-            border-bottom: 1px solid #444;
+        #photos {
+            display: none;
+        }
+        .upload-label {
+            cursor: pointer;
+            display: block;
+            padding: 20px;
+        }
+        .photos-container {
+            margin-top: 20px;
+        }
+        .photo-item {
+            background: #333;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .photo-preview {
+            width: 120px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        .photo-info {
+            flex: 1;
+        }
+        .photo-name {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .title-input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            background: #444;
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .title-input:focus {
+            outline: none;
+            background: #555;
+        }
+        .remove-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .remove-btn:hover {
+            background: #d32f2f;
         }
         .btn {
             width: 100%;
             padding: 12px;
-            background: #444;
+            background: #007bff;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
+            border-radius: 6px;
             cursor: pointer;
-            margin-top: 8px;
-            transition: background 0.2s;
+            font-size: 1rem;
+            margin-top: 20px;
         }
         .btn:hover {
-            background: #666;
+            background: #0056b3;
         }
         .btn:disabled {
-            background: #333;
+            background: #666;
             cursor: not-allowed;
         }
-        .back-btn {
-            display: block;
-            width: 120px;
-            margin: 0 auto 20px auto;
-            padding: 8px;
-            background: #555;
-            color: #fff;
-            text-decoration: none;
-            text-align: center;
-            border-radius: 6px;
+        .instructions {
+            color: #aaa;
             font-size: 0.9rem;
-            transition: background 0.2s;
+            margin-top: 8px;
         }
-        .back-btn:hover {
-            background: #777;
-        }
-        @media (max-width: 600px) {
+        
+        @media (max-width: 768px) {
             .container {
                 max-width: 95vw;
-                margin: 40px auto;
-                padding: 20px;
-            }
-            h2 {
-                font-size: 1.5rem;
-                margin-bottom: 20px;
-            }
-            input, select {
-                padding: 12px;
-                font-size: 16px; /* 防止iOS缩放 */
-            }
-            .file-upload {
+                margin: 20px auto;
                 padding: 16px;
-                font-size: 0.9rem;
             }
-            .btn {
-                padding: 14px;
-                font-size: 1rem;
-                min-height: 44px; /* 移动端触摸目标 */
+            .photo-item {
+                flex-direction: column;
+                gap: 12px;
             }
-            .back-btn {
-                padding: 10px 16px;
-                font-size: 0.9rem;
-                min-height: 40px;
-                width: auto;
-            }
-            .file-list {
-                font-size: 0.8rem;
+            .photo-preview {
+                width: 100%;
+                height: 200px;
             }
         }
     </style>
@@ -133,43 +172,124 @@
         
         <!-- 显示用户信息 -->
         {% if current_user %}
-        <div style="background: #333; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
-            <p style="margin: 4px 0; color: #ccc;"><strong>班级：</strong>{{ current_user.class_name }}</p>
-            <p style="margin: 4px 0; color: #ccc;"><strong>姓名：</strong>{{ current_user.real_name }}</p>
+        <div class="user-info">
+            <p><strong>班级：</strong>{{ current_user.class_name }}</p>
+            <p><strong>姓名：</strong>{{ current_user.real_name }}</p>
         </div>
         {% endif %}
         
-        <form method="post" enctype="multipart/form-data">
-            <label for="photos">选择照片（可多选）</label>
-            <div class="file-upload">
-                <input type="file" name="photos" id="photos" accept="image/*" multiple required>
-                <p>点击选择照片或拖拽照片到此处</p>
-                <div class="file-list" id="file-list"></div>
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+            <div class="file-upload" id="file-upload">
+                <label for="photos" class="upload-label">
+                    <input type="file" name="photos" id="photos" accept="image/*" multiple>
+                    <div>
+                        <p>📷 点击选择照片或拖拽照片到此处</p>
+                        <p class="instructions">支持 JPG、PNG 格式，可同时选择多张照片</p>
+                    </div>
+                </label>
             </div>
             
-            <button class="btn" type="submit" id="submit-btn">上传照片</button>
+            <div class="photos-container" id="photos-container"></div>
+            
+            <button class="btn" type="submit" id="submit-btn" disabled>上传照片</button>
         </form>
     </div>
     
     <script>
         const fileInput = document.getElementById('photos');
-        const fileList = document.getElementById('file-list');
+        const fileUpload = document.getElementById('file-upload');
+        const photosContainer = document.getElementById('photos-container');
         const submitBtn = document.getElementById('submit-btn');
+        const uploadForm = document.getElementById('upload-form');
         
+        let selectedFiles = [];
+        
+        // 文件选择事件
         fileInput.addEventListener('change', function() {
-            fileList.innerHTML = '';
-            if (this.files.length > 0) {
-                fileList.innerHTML = '<strong>已选择的照片：</strong>';
-                for (let i = 0; i < this.files.length; i++) {
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-                    fileItem.textContent = `${i + 1}. ${this.files[i].name}`;
-                    fileList.appendChild(fileItem);
-                }
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
+            handleFiles(this.files);
+        });
+        
+        // 拖拽事件
+        fileUpload.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        
+        fileUpload.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+        
+        fileUpload.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            updatePhotosDisplay();
+        }
+        
+        function updatePhotosDisplay() {
+            photosContainer.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    photoItem.innerHTML = `
+                        <img src="${e.target.result}" alt="预览" class="photo-preview">
+                        <div class="photo-info">
+                            <div class="photo-name">${file.name}</div>
+                            <input type="text" name="titles" class="title-input" 
+                                   placeholder="请输入作品名称（可选）" 
+                                   value="作品${index + 1}">
+                            <button type="button" class="remove-btn" onclick="removePhoto(${index})">
+                                移除
+                            </button>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+                
+                photosContainer.appendChild(photoItem);
+            });
+            
+            // 更新提交按钮状态
+            submitBtn.disabled = selectedFiles.length === 0;
+            
+            // 更新文件输入框
+            updateFileInput();
+        }
+        
+        function removePhoto(index) {
+            selectedFiles.splice(index, 1);
+            updatePhotosDisplay();
+        }
+        
+        function updateFileInput() {
+            // 创建新的 DataTransfer 对象来更新文件输入框
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => {
+                dt.items.add(file);
+            });
+            fileInput.files = dt.files;
+        }
+        
+        // 表单提交前验证
+        uploadForm.addEventListener('submit', function(e) {
+            if (selectedFiles.length === 0) {
+                e.preventDefault();
+                alert('请选择至少一张照片');
+                return;
             }
+            
+            // 禁用提交按钮防止重复提交
+            submitBtn.disabled = true;
+            submitBtn.textContent = '上传中...';
         });
     </script>
 </body>

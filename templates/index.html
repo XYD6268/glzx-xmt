@@ -92,19 +92,32 @@
             margin-bottom: 8px;
             transition: box-shadow 0.2s;
         }
+        .photo-title {
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 6px;
+            word-wrap: break-word;
+        }
         .photo-info {
             width: 100%;
             display: flex;
-            justify-content: space-between;
-            font-size: 0.95rem;
-            margin-bottom: 4px;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 8px;
         }
         .photo-vote-row {
             width: 100%;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            margin-bottom: 4px;
+            gap: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
         }
         .photo-vote-btn {
             width: 100%;
@@ -115,7 +128,6 @@
             border-radius: 8px;
             font-size: 1rem;
             cursor: pointer;
-            margin-top: 4px;
             transition: background 0.2s;
         }
         .photo-vote-btn:hover {
@@ -163,8 +175,17 @@
                 max-width: 100%;
                 max-height: 25vw;
             }
+            .photo-title {
+                font-size: 0.9rem;
+                margin-bottom: 4px;
+            }
             .photo-info {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
+                margin-bottom: 6px;
+            }
+            .photo-vote-row {
+                font-size: 0.8rem;
+                margin-bottom: 6px;
             }
             .photo-vote-btn {
                 padding: 6px;
@@ -272,13 +293,16 @@
             {% for photo in photos %}
             <div class="photo-item">
                 <img src="{{ photo.thumb_url }}" alt="参赛照片" onclick="showModal('{{ photo.url }}')">
+                {% if photo.title %}
+                <div class="photo-title">{{ photo.title }}</div>
+                {% endif %}
                 <div class="photo-info">
                     <span>{{ photo.class_name }}</span>
+                    <span>•</span>
                     <span>{{ photo.student_name }}</span>
                 </div>
                 <div class="photo-vote-row">
-                    <span>票数：</span>
-                    <span id="vote-count-{{ photo.id }}">{{ photo.vote_count }}</span>
+                    <span id="vote-count-{{ photo.id }}">票数：{{ photo.vote_count }}</span>
                 </div>
                 <button class="photo-vote-btn" onclick="votePhoto('{{ photo.id }}')">投票</button>
             </div>
@@ -322,7 +346,7 @@
                     if (data.error) {
                         alert(data.error);
                     } else {
-                        document.getElementById('vote-count-' + photoId).textContent = data.vote_count;
+                        document.getElementById('vote-count-' + photoId).textContent = '票数：' + data.vote_count;
                     }
                 });
             } else if (userLoggedIn) {

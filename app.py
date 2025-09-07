@@ -24,17 +24,25 @@ class User(db.Model):
     role = db.Column(db.Integer, default=1)  # 1=普通用户, 2=普通管理员, 3=系统管理员
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    # 关系定义
+    photos = db.relationship('Photo', backref='user', lazy=True)
+    votes = db.relationship('Vote', backref='user', lazy=True)
 
 class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.String(128))
     thumb_url = db.Column(db.String(128))
+    title = db.Column(db.String(100), nullable=True)  # 作品名称
     class_name = db.Column(db.String(32))
     student_name = db.Column(db.String(32))
     vote_count = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     status = db.Column(db.Integer, default=0)  # 0=待审核, 1=已通过, 2=已拒绝
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    # 关系定义
+    votes = db.relationship('Vote', backref='photo', lazy=True)
 
 class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -179,6 +187,7 @@ def vote():
 def upload():
     if request.method == 'POST':
         files = request.files.getlist('photos')
+        titles = request.form.getlist('titles')  # 获取作品名称列表
         user_id = session.get('user_id')
         
         if not user_id:
@@ -195,8 +204,11 @@ def upload():
         student_name = current_user.real_name
         
         uploaded_count = 0
-        for file in files:
+        for i, file in enumerate(files):
             if file and file.filename:
+                # 获取对应的作品名称，如果没有提供则使用默认名称
+                title = titles[i] if i < len(titles) and titles[i].strip() else f"作品{i+1}"
+                
                 filename = secure_filename(file.filename)
                 # 为每个文件生成唯一的文件名
                 import time
@@ -217,6 +229,7 @@ def upload():
                 photo = Photo(
                     url='/' + save_path.replace('\\', '/'), 
                     thumb_url='/' + thumb_path.replace('\\', '/'), 
+                    title=title,  # 添加作品名称
                     class_name=class_name, 
                     student_name=student_name,
                     user_id=user_id,
@@ -237,6 +250,63 @@ def upload():
     else:
         flash('请先登录')
         return redirect(url_for('login'))
+
+@app.route('/admin')
+@admin_required
+def admin():
+    all_photos = Photo.query.order_by(Photo.vote_count.desc()).all()
+    return render_template('admin.html', all_photos=all_photos)
+
+@app.route('/admin/review')
+@admin_required
+def admin_review():
+    pending_photos = Photo.query.filter_by(status=0).order_by(Photo.created_at.desc()).all()
+    return render_template('admin_review.html', pending_photos=pending_photos)
+
+@app.route('/approve_photo/<int:photo_id>')
+@admin_required
+def approve_photo(photo_id):
+    photo = Photo.query.get_or_404(photo_id)
+    photo.status = 1
+    db.session.commit()
+    flash('照片审核通过')
+    return redirect(request.referrer or url_for('admin_review'))
+
+@app.route('/reject_photo/<int:photo_id>')
+@admin_required
+def reject_photo(photo_id):
+    photo = Photo.query.get_or_404(photo_id)
+    photo.status = 2
+    db.session.commit()
+    flash('照片审核拒绝')
+    return redirect(request.referrer or url_for('admin_review'))
+
+@app.route('/admin_delete_photo/<int:photo_id>')
+@admin_required
+def admin_delete_photo(photo_id):
+    photo = Photo.query.get_or_404(photo_id)
+    
+    # 删除文件
+    if os.path.exists(photo.url[1:]):
+        os.remove(photo.url[1:])
+    if os.path.exists(photo.thumb_url[1:]):
+        os.remove(photo.thumb_url[1:])
+    
+    # 删除投票记录
+    Vote.query.filter_by(photo_id=photo_id).delete()
+    
+    # 删除照片记录
+    db.session.delete(photo)
+    db.session.commit()
+    flash('照片删除成功')
+    return redirect(request.referrer or url_for('admin'))
+
+@app.route('/my_photos')
+@login_required
+def my_photos():
+    user_id = session.get('user_id')
+    my_photos = Photo.query.filter_by(user_id=user_id).order_by(Photo.created_at.desc()).all()
+    return render_template('my_photos.html', my_photos=my_photos)
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
