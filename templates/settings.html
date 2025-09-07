@@ -278,9 +278,9 @@
                     </div>
                 </div>
                 
-                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-                    <p style="margin: 0; color: #856404; font-size: 0.9rem;">
-                        <strong>⚠️ 风控说明：</strong><br>
+                <div style="background: #2c4a6b; border: 1px solid #007bff; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <p style="margin: 0; color: #ccc; font-size: 0.9rem;">
+                        <strong style="color: #fff;">⚠️ 风控说明：</strong><br>
                         • 当单个IP在指定时间窗口内投票次数或登录账号数超过限制时，系统将自动封禁相关账号（管理员除外）<br>
                         • 封禁是不可逆的，请谨慎设置参数<br>
                         • 建议根据实际参与人数合理设置限制值
@@ -288,8 +288,101 @@
                 </div>
             </div>
             
+            <!-- 协议设置 -->
+            <div style="background: #333; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="color: #fff; margin-bottom: 16px; font-size: 1.2rem;">📋 协议设置</h3>
+                
+                <div style="margin-bottom: 20px;">
+                    <label for="registration_agreement" style="color: #fff;">注册用户协议</label>
+                    <div style="margin-bottom: 8px;">
+                        <small style="color: #ccc; font-size: 0.9rem;">
+                            用户注册时需要阅读并同意的协议内容，支持HTML格式
+                        </small>
+                    </div>
+                    <textarea name="registration_agreement" 
+                              id="registration_agreement" 
+                              rows="8" 
+                              style="width: 100%; padding: 12px; border: 1px solid #555; border-radius: 6px; font-family: monospace; font-size: 0.9rem; resize: vertical; background: #222; color: #fff;"
+                              placeholder="请输入注册协议内容（HTML格式）">{{ settings.registration_agreement }}</textarea>
+                    <div style="margin-top: 5px;">
+                        <button type="button" class="btn" style="background: #007bff; color: #fff; padding: 6px 12px; font-size: 0.8rem;" onclick="previewAgreement('registration')">
+                            👁️ 预览协议
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label for="submission_agreement" style="color: #fff;">作品投稿协议</label>
+                    <div style="margin-bottom: 8px;">
+                        <small style="color: #ccc; font-size: 0.9rem;">
+                            用户上传作品时需要阅读并同意的协议内容，支持HTML格式
+                        </small>
+                    </div>
+                    <textarea name="submission_agreement" 
+                              id="submission_agreement" 
+                              rows="8" 
+                              style="width: 100%; padding: 12px; border: 1px solid #555; border-radius: 6px; font-family: monospace; font-size: 0.9rem; resize: vertical; background: #222; color: #fff;"
+                              placeholder="请输入投稿协议内容（HTML格式）">{{ settings.submission_agreement }}</textarea>
+                    <div style="margin-top: 5px;">
+                        <button type="button" class="btn" style="background: #007bff; color: #fff; padding: 6px 12px; font-size: 0.8rem;" onclick="previewAgreement('submission')">
+                            👁️ 预览协议
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="background: #2c4a6b; border: 1px solid #007bff; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <p style="margin: 0; color: #ccc; font-size: 0.9rem;">
+                        <strong style="color: #fff;">📝 协议说明：</strong><br>
+                        • 协议内容支持HTML格式，可以使用标签如 &lt;h3&gt;、&lt;p&gt;、&lt;ul&gt;、&lt;li&gt; 等<br>
+                        • 用户在注册/投稿时必须阅读5秒并勾选同意才能继续<br>
+                        • 修改协议后立即生效，建议在比赛开始前设置好
+                    </p>
+                </div>
+            </div>
+            
             <button class="btn" type="submit">保存设置</button>
         </form>
     </div>
+    
+    <!-- 引入协议弹窗组件 -->
+    <script src="{{ url_for('static', filename='js/agreement-modal.js') }}"></script>
+    <script>
+        // 预览协议功能
+        function previewAgreement(type) {
+            const content = document.getElementById(type + '_agreement').value;
+            if (!content.trim()) {
+                alert('请先输入协议内容');
+                return;
+            }
+            
+            // 创建临时的预览弹窗，不需要强制阅读时间
+            const originalRequiredTime = agreementModal.requiredReadTime;
+            agreementModal.requiredReadTime = 0; // 设置为0秒，立即可以关闭
+            
+            // 临时替换API响应
+            const originalFetch = window.fetch;
+            window.fetch = function(url, options) {
+                if (url.includes('/api/agreement/')) {
+                    return Promise.resolve({
+                        json: () => Promise.resolve({ content: content })
+                    });
+                }
+                return originalFetch.apply(this, arguments);
+            };
+            
+            agreementModal.show(type, 
+                function() {
+                    // 恢复原设置
+                    agreementModal.requiredReadTime = originalRequiredTime;
+                    window.fetch = originalFetch;
+                },
+                function() {
+                    // 恢复原设置
+                    agreementModal.requiredReadTime = originalRequiredTime;
+                    window.fetch = originalFetch;
+                }
+            );
+        }
+    </script>
 </body>
 </html>

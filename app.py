@@ -111,6 +111,10 @@ class Settings(db.Model):
     vote_time_window = db.Column(db.Integer, default=60)  # 投票时间窗口（分钟）
     max_accounts_per_ip = db.Column(db.Integer, default=5)  # 单IP最大登录账号数
     account_time_window = db.Column(db.Integer, default=1440)  # 账号登录时间窗口（分钟，默认24小时）
+    
+    # 协议设置
+    registration_agreement = db.Column(db.Text, default='<h3>用户注册协议</h3><p>欢迎使用本平台...</p>')  # 注册协议
+    submission_agreement = db.Column(db.Text, default='<h3>作品投稿协议</h3><p>请遵守投稿规则...</p>')  # 投稿协议
 
 # 权限装饰器
 def login_required(f):
@@ -148,9 +152,88 @@ def super_admin_required(f):
 def get_settings():
     settings = Settings.query.first()
     if not settings:
-        settings = Settings()
+        settings = Settings(
+            registration_agreement='''
+<h3>用户注册协议</h3>
+<p>欢迎您注册本摄影比赛平台！在注册前，请您仔细阅读并理解以下协议条款：</p>
+
+<h4>1. 账户信息</h4>
+<ul>
+    <li>您需要提供真实、准确的个人信息进行注册</li>
+    <li>您的学号和QQ号将作为身份验证的重要信息</li>
+    <li>请妥善保管您的账户密码，不要与他人分享</li>
+</ul>
+
+<h4>2. 使用规范</h4>
+<ul>
+    <li>严禁使用本平台进行任何违法违规活动</li>
+    <li>不得恶意刷票、作弊或干扰比赛正常进行</li>
+    <li>尊重其他用户，维护良好的比赛环境</li>
+</ul>
+
+<h4>3. 隐私保护</h4>
+<ul>
+    <li>我们承诺保护您的个人隐私信息</li>
+    <li>您的个人信息仅用于比赛管理和身份验证</li>
+    <li>未经您同意，我们不会向第三方泄露您的信息</li>
+</ul>
+
+<h4>4. 其他条款</h4>
+<ul>
+    <li>本协议的最终解释权归比赛组委会所有</li>
+    <li>如有违反协议的行为，组委会有权取消您的参赛资格</li>
+    <li>注册即表示您已阅读并同意遵守本协议</li>
+</ul>
+
+<p><strong>感谢您的参与，祝您在比赛中取得好成绩！</strong></p>
+            ''',
+            submission_agreement='''
+<h3>作品投稿协议</h3>
+<p>感谢您参与本次摄影比赛！在提交作品前，请仔细阅读以下投稿协议：</p>
+
+<h4>1. 作品要求</h4>
+<ul>
+    <li>作品必须为您本人原创，不得抄袭或盗用他人作品</li>
+    <li>作品内容应积极向上，符合社会主义核心价值观</li>
+    <li>不得包含违法、暴力、色情等不良内容</li>
+    <li>支持JPG、PNG格式，建议分辨率不低于1920x1080</li>
+</ul>
+
+<h4>2. 版权声明</h4>
+<ul>
+    <li>您保留作品的著作权，但授权本平台在比赛期间使用</li>
+    <li>平台有权将优秀作品用于比赛宣传和展示</li>
+    <li>如发现作品侵权，您需承担相应的法律责任</li>
+</ul>
+
+<h4>3. 评选规则</h4>
+<ul>
+    <li>作品将接受公开投票和专家评审</li>
+    <li>严禁刷票、拉票等不正当竞争行为</li>
+    <li>最终获奖结果由组委会根据综合评分确定</li>
+</ul>
+
+<h4>4. 注意事项</h4>
+<ul>
+    <li>每位参赛者可提交多幅作品</li>
+    <li>作品一经提交，需等待管理员审核</li>
+    <li>审核不通过的作品将被退回，可重新提交</li>
+    <li>比赛结束后，作品将保留一段时间供展示</li>
+</ul>
+
+<p><strong>期待您的精彩作品，预祝比赛成功！</strong></p>
+            '''
+        )
         db.session.add(settings)
         db.session.commit()
+    
+    # 确保协议内容不为空
+    if not settings.registration_agreement:
+        settings.registration_agreement = '<h3>用户注册协议</h3><p>欢迎使用本平台，请遵守相关规定。</p>'
+    if not settings.submission_agreement:
+        settings.submission_agreement = '<h3>作品投稿协议</h3><p>请确保作品为原创，遵守比赛规则。</p>'
+        db.session.commit()
+    
     return settings
 
 def generate_secure_filename(original_filename, user, photo_counter):
@@ -746,6 +829,10 @@ def settings():
             flash('风控参数必须为正整数')
             return redirect(url_for('settings'))
         
+        # 处理协议设置
+        settings.registration_agreement = request.form.get('registration_agreement', settings.registration_agreement)
+        settings.submission_agreement = request.form.get('submission_agreement', settings.submission_agreement)
+        
         db.session.commit()
         flash('设置保存成功')
         return redirect(url_for('settings'))
@@ -992,6 +1079,17 @@ def whitelist_management():
                          user_whitelists=user_whitelists,
                          all_users=all_users,
                          settings=settings)
+
+@app.route('/api/agreement/<agreement_type>')
+def get_agreement(agreement_type):
+    """获取协议内容API"""
+    settings = get_settings()
+    if agreement_type == 'registration':
+        return jsonify({'content': settings.registration_agreement})
+    elif agreement_type == 'submission':
+        return jsonify({'content': settings.submission_agreement})
+    else:
+        return jsonify({'error': 'Invalid agreement type'}), 400
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

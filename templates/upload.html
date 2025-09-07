@@ -368,16 +368,30 @@
         
         // 表单提交前验证
         uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // 先阻止默认提交
+            
             if (selectedFiles.length === 0) {
-                e.preventDefault();
                 alert('请选择至少一张照片');
                 return;
             }
             
-            // 禁用提交按钮防止重复提交
-            submitBtn.disabled = true;
-            submitBtn.textContent = '上传中...';
+            // 显示投稿协议
+            agreementModal.show('submission', 
+                function() {
+                    // 用户同意协议，继续上传
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '上传中...';
+                    uploadForm.submit();
+                },
+                function() {
+                    // 用户取消，恢复按钮状态
+                    console.log('用户取消了投稿协议确认');
+                }
+            );
         });
     </script>
+    
+    <!-- 引入协议弹窗组件 -->
+    <script src="{{ url_for('static', filename='js/agreement-modal.js') }}"></script>
 </body>
 </html>

@@ -12,8 +12,8 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #333;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #181818;
             min-height: 100vh;
             color: #fff;
             margin: 0;
@@ -23,7 +23,7 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 32px 16px;
         }
         
         .header {
@@ -33,17 +33,17 @@
         
         .header h1 {
             color: white;
-            font-size: 2.5rem;
+            font-size: clamp(1.5rem, 4vw, 2rem);
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         
         .nav {
-            background: #444;
+            background: #222;
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 30px;
             text-align: center;
+            box-shadow: 0 2px 8px #0006;
         }
         
         .nav a {
@@ -56,11 +56,11 @@
         }
         
         .nav a:hover {
-            background: #555;
+            background: #666;
         }
         
         .nav a.current {
-            background: #4caf50;
+            background: #007bff;
         }
         
         .stats-grid {
@@ -71,11 +71,11 @@
         }
         
         .stat-card {
-            background: #444;
+            background: #333;
             padding: 24px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px #0006;
         }
         
         .stat-number {
@@ -90,17 +90,17 @@
         }
         
         .ip-stat {
-            color: #2196f3;
+            color: #007bff;
         }
         
         .user-stat {
-            color: #ff9800;
+            color: #007bff;
         }
         
         .tabs {
             display: flex;
             margin-bottom: 30px;
-            background: #444;
+            background: #333;
             border-radius: 12px;
             padding: 8px;
         }
@@ -118,7 +118,7 @@
         }
         
         .tab.active {
-            background: #4caf50;
+            background: #007bff;
             color: white;
         }
         
@@ -131,16 +131,17 @@
         }
         
         .add-form {
-            background: #444;
+            background: #333;
             padding: 24px;
             border-radius: 12px;
             margin-bottom: 30px;
+            box-shadow: 0 2px 8px #0006;
         }
         
         .form-title {
             font-size: 1.3rem;
             margin-bottom: 20px;
-            color: #4caf50;
+            color: #007bff;
         }
         
         .form-group {
@@ -160,7 +161,7 @@
             padding: 12px;
             border: 1px solid #555;
             border-radius: 8px;
-            background: #333;
+            background: #222;
             color: #fff;
             font-size: 1rem;
         }
@@ -168,8 +169,8 @@
         .form-group input:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #4caf50;
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
         }
         
         .form-group textarea {
@@ -180,7 +181,7 @@
         .btn {
             padding: 12px 24px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 1rem;
             font-weight: 500;
@@ -190,38 +191,38 @@
         }
         
         .btn-primary {
-            background: #4caf50;
+            background: #007bff;
             color: white;
         }
         
         .btn-primary:hover {
-            background: #45a049;
+            background: #0056b3;
             transform: translateY(-1px);
         }
         
         .btn-danger {
-            background: #f44336;
+            background: #dc3545;
             color: white;
         }
         
         .btn-danger:hover {
-            background: #da190b;
+            background: #c82333;
         }
         
         .btn-secondary {
-            background: #666;
+            background: #555;
             color: white;
         }
         
         .btn-secondary:hover {
-            background: #555;
+            background: #666;
         }
         
         .table-container {
-            background: #444;
+            background: #333;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px #0006;
         }
         
         table {
@@ -236,13 +237,13 @@
         }
         
         th {
-            background: #333;
+            background: #222;
             font-weight: 600;
-            color: #4caf50;
+            color: #007bff;
         }
         
         tr:hover {
-            background: #3a3a3a;
+            background: #444;
         }
         
         .empty-state {
@@ -268,20 +269,21 @@
         }
         
         .flash.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #1d5d2b;
+            color: #d4edda;
+            border: 1px solid #28a745;
         }
         
         .flash.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: #5d1a1f;
+            color: #f8d7da;
+            border: 1px solid #dc3545;
         }
         
         .ip-address {
             font-family: 'Courier New', monospace;
-            background: #333;
+            background: #007bff;
+            color: white;
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 0.9rem;
@@ -294,11 +296,12 @@
         
         .user-name {
             font-weight: 500;
+            color: #fff;
         }
         
         .user-id {
             font-size: 0.8rem;
-            color: #888;
+            color: #ccc;
         }
         
         .description {
@@ -306,10 +309,11 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            color: #ccc;
         }
         
         .date {
-            color: #888;
+            color: #ccc;
             font-size: 0.9rem;
         }
         
