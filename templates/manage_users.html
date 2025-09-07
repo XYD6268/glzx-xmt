@@ -38,6 +38,28 @@
         .nav-btn:hover {
             background: #666;
         }
+        
+        .admin-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .left-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .right-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -87,28 +109,48 @@
             background: #4caf50;
             color: white;
             border: none;
-            padding: 4px 8px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
             margin: 2px;
             font-size: 0.8rem;
             text-decoration: none;
             display: inline-block;
+            transition: background 0.2s;
         }
         .btn:hover {
             background: #45a049;
         }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-primary {
+            background: #007bff;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #1e7e34;
+        }
         .btn-warning {
-            background: #ff9800;
+            background: #ffc107;
+            color: #212529;
         }
         .btn-warning:hover {
-            background: #f57c00;
+            background: #e0a800;
         }
         .btn-danger {
-            background: #f44336;
+            background: #dc3545;
         }
         .btn-danger:hover {
-            background: #d32f2f;
+            background: #c82333;
         }
         .flash {
             background: #4caf50;
@@ -117,6 +159,11 @@
             border-radius: 4px;
             margin-bottom: 16px;
         }
+        
+        .user-checkbox {
+            margin: 0;
+        }
+        
         /* 响应式设计 */
         .mobile-hide {
             display: table-cell;
@@ -129,6 +176,13 @@
             }
             table {
                 font-size: 0.9rem;
+            }
+            .admin-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .left-controls, .right-controls {
+                justify-content: center;
             }
         }
         
@@ -182,6 +236,10 @@
                 font-size: 0.6rem;
                 padding: 2px 4px;
             }
+            .left-controls, .right-controls {
+                flex-direction: column;
+                width: 100%;
+            }
         }
         
         @media (max-width: 400px) {
@@ -195,21 +253,20 @@
             th, td {
                 padding: 4px 2px;
             }
-
-            }
-            /* 在移动端隐藏某些列以节省空间 */
             .mobile-hide {
                 display: none;
             }
-
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="title">用户管理</div>
         
-        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
-        <a href="{{ url_for('settings') }}" class="nav-btn">系统设置</a>
+        <a href="{{ url_for('index') }}" class="nav-btn">🏠 返回首页</a>
+        <a href="{{ url_for('admin') }}" class="nav-btn">📊 管理面板</a>
+        <a href="{{ url_for('ip_management') }}" class="nav-btn">🛡️ IP管理</a>
+        <a href="{{ url_for('settings') }}" class="nav-btn">⚙️ 系统设置</a>
         
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -219,58 +276,162 @@
             {% endif %}
         {% endwith %}
         
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>校学号</th>
-                    <th>真实姓名</th>
-                    <th class="mobile-hide">班级</th>
-                    <th class="mobile-hide">QQ号</th>
-                    <th>角色</th>
-                    <th>状态</th>
-                    <th class="mobile-hide">注册时间</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.id }}</td>
-                    <td>{{ user.school_id }}</td>
-                    <td>{{ user.real_name }}</td>
-                    <td class="mobile-hide">{{ user.class_name }}</td>
-                    <td class="mobile-hide">{{ user.qq_number }}</td>
-                    <td>
-                        <span class="role role-{{ user.role }}">
-                            {% if user.role == 1 %}普通用户
-                            {% elif user.role == 2 %}管理员
-                            {% else %}系统管理员
+        <div class="admin-controls">
+            <div class="left-controls">
+                <button type="button" onclick="selectAll()" class="btn btn-secondary">全选</button>
+                <button type="button" onclick="selectNone()" class="btn btn-secondary">取消全选</button>
+                <button type="button" onclick="selectInverse()" class="btn btn-secondary">反选</button>
+            </div>
+            <div class="right-controls">
+                <a href="{{ url_for('add_user') }}" class="btn btn-primary">
+                    👤 添加用户
+                </a>
+                <button type="button" onclick="batchAction('activate')" class="btn btn-success">批量激活</button>
+                <button type="button" onclick="batchAction('deactivate')" class="btn btn-warning">批量禁用</button>
+                <button type="button" onclick="batchAction('delete')" class="btn btn-danger">批量删除</button>
+            </div>
+        </div>
+        
+        <form id="batchForm" method="post" action="{{ url_for('batch_user_action') }}">
+            <input type="hidden" name="action" id="batchAction">
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                        </th>
+                        <th style="width: 60px;">ID</th>
+                        <th style="width: 120px;">校学号</th>
+                        <th style="width: 100px;">真实姓名</th>
+                        <th class="mobile-hide" style="width: 120px;">班级</th>
+                        <th class="mobile-hide" style="width: 120px;">QQ号</th>
+                        <th style="width: 100px;">角色</th>
+                        <th style="width: 80px;">状态</th>
+                        <th class="mobile-hide" style="width: 120px;">注册时间</th>
+                        <th style="width: 240px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox">
+                        </td>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.school_id }}</td>
+                        <td>{{ user.real_name }}</td>
+                        <td class="mobile-hide">{{ user.class_name }}</td>
+                        <td class="mobile-hide">{{ user.qq_number }}</td>
+                        <td>
+                            <span class="role role-{{ user.role }}">
+                                {% if user.role == 1 %}普通用户
+                                {% elif user.role == 2 %}管理员
+                                {% else %}系统管理员
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                {% if user.is_active %}正常{% else %}禁用{% endif %}
+                            </span>
+                        </td>
+                        <td class="mobile-hide">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}</td>
+                        <td>
+                            {% if user.role < 3 %}
+                                <a href="{{ url_for('change_user_role', user_id=user.id, new_role=1) }}" class="btn">设为用户</a>
+                                <a href="{{ url_for('change_user_role', user_id=user.id, new_role=2) }}" class="btn btn-warning">设为管理员</a>
+                                <a href="{{ url_for('change_user_role', user_id=user.id, new_role=3) }}" class="btn btn-danger">设为系统管理员</a>
+                                <a href="{{ url_for('toggle_user_status', user_id=user.id) }}" class="btn {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                                    {% if user.is_active %}禁用{% else %}启用{% endif %}
+                                </a>
+                                <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn btn-danger" onclick="return confirm('确定要删除用户 {{ user.real_name }}({{ user.school_id }}) 吗？这将删除用户的所有数据！')">删除</a>
+                            {% else %}
+                                <span style="color: #888;">系统管理员</span>
                             {% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="status {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
-                            {% if user.is_active %}正常{% else %}禁用{% endif %}
-                        </span>
-                    </td>
-                    <td class="mobile-hide">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}</td>
-                    <td>
-                        {% if user.role < 3 %}
-                            <a href="{{ url_for('change_user_role', user_id=user.id, new_role=1) }}" class="btn">设为用户</a>
-                            <a href="{{ url_for('change_user_role', user_id=user.id, new_role=2) }}" class="btn btn-warning">设为管理员</a>
-                            <a href="{{ url_for('change_user_role', user_id=user.id, new_role=3) }}" class="btn btn-danger">设为系统管理员</a>
-                            <a href="{{ url_for('toggle_user_status', user_id=user.id) }}" class="btn btn-warning">
-                                {% if user.is_active %}禁用{% else %}启用{% endif %}
-                            </a>
-                        {% else %}
-                            <span style="color: #888;">系统管理员</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
     </div>
+
+    <script>
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateSelectAllCheckbox();
+        }
+        
+        function selectNone() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateSelectAllCheckbox();
+        }
+        
+        function selectInverse() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(cb => cb.checked = !cb.checked);
+            updateSelectAllCheckbox();
+        }
+        
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+        }
+        
+        function updateSelectAllCheckbox() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            
+            if (checkedCount === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (checkedCount === checkboxes.length) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else {
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+        
+        function batchAction(action) {
+            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('请选择要操作的用户');
+                return;
+            }
+            
+            let confirmMessage = '';
+            switch(action) {
+                case 'activate':
+                    confirmMessage = `确定要激活选中的 ${checkboxes.length} 个用户吗？`;
+                    break;
+                case 'deactivate':
+                    confirmMessage = `确定要禁用选中的 ${checkboxes.length} 个用户吗？`;
+                    break;
+                case 'delete':
+                    confirmMessage = `确定要删除选中的 ${checkboxes.length} 个用户吗？这将删除用户的所有数据且无法恢复！`;
+                    break;
+            }
+            
+            if (confirm(confirmMessage)) {
+                document.getElementById('batchAction').value = action;
+                document.getElementById('batchForm').submit();
+            }
+        }
+        
+        // 监听复选框状态变化
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', updateSelectAllCheckbox);
+            });
+            updateSelectAllCheckbox();
+        });
+    </script>
 </body>
 </html>

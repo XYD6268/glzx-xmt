@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP管理 - {{ settings.contest_title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .nav {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        
+        .nav a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4caf50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .main-content {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            color: #4caf50;
+            border-bottom-color: #4caf50;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background: #fee;
+            color: #c33;
+        }
+        
+        .status-inactive {
+            background: #efe;
+            color: #383;
+        }
+        
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        
+        .btn-unban {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-unban:hover {
+            background: #45a049;
+        }
+        
+        .btn-ban {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-ban:hover {
+            background: #da190b;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+            font-style: italic;
+        }
+        
+        .flash {
+            background: #4caf50;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .flash.error {
+            background: #f44336;
+        }
+        
+        .warning-text {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav a {
+                margin: 5px;
+                display: inline-block;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                text-align: left;
+                border-bottom: 1px solid #eee;
+                border-right: none;
+            }
+            
+            .tab.active {
+                border-bottom-color: #eee;
+                border-left: 3px solid #4caf50;
+            }
+            
+            table {
+                font-size: 0.9rem;
+            }
+            
+            th, td {
+                padding: 8px 4px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ IP管理中心</h1>
+        </div>
+        
+        <div class="nav">
+            <a href="{{ url_for('index') }}">🏠 首页</a>
+            <a href="{{ url_for('admin') }}">📊 管理面板</a>
+            <a href="{{ url_for('settings') }}">⚙️ 系统设置</a>
+            <a href="{{ url_for('manage_users') }}">👥 用户管理</a>
+        </div>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ banned_ips_count }}</div>
+                <div class="stat-label">被封禁IP</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_login_records }}</div>
+                <div class="stat-label">登录记录</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ recent_votes_count }}</div>
+                <div class="stat-label">近24小时投票</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ unique_ips_count }}</div>
+                <div class="stat-label">活跃IP数</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab(event, 'banned-ips')">🚫 封禁IP列表</button>
+                <button class="tab" onclick="switchTab(event, 'login-records')">📝 登录记录</button>
+                <button class="tab" onclick="switchTab(event, 'vote-analysis')">📊 投票分析</button>
+            </div>
+            
+            <!-- 封禁IP列表 -->
+            <div id="banned-ips" class="tab-content active">
+                <input type="text" class="search-box" placeholder="搜索IP地址..." 
+                       onkeyup="filterTable(this, 'banned-table')">
+                
+                <div class="table-container">
+                    <table id="banned-table">
+                        <thead>
+                            <tr>
+                                <th>IP地址</th>
+                                <th>封禁原因</th>
+                                <th>封禁时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ban in banned_ips %}
+                            <tr>
+                                <td>{{ ban.ip_address }}</td>
+                                <td>{{ ban.ban_reason }}</td>
+                                <td>{{ ban.banned_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>
+                                    <span class="status-badge {% if ban.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                        {% if ban.is_active %}已封禁{% else %}已解封{% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if ban.is_active %}
+                                        <form method="post" action="{{ url_for('unban_ip', ip_id=ban.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-unban" 
+                                                    onclick="return confirm('确定要解封此IP吗？')">解封</button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="no-data">暂无封禁IP记录</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- 登录记录 -->
+            <div id="login-records" class="tab-content">
+                <input type="text" class="search-box" placeholder="搜索IP地址或用户..." 
+                       onkeyup="filterTable(this, 'login-table')">
+                
+                <div class="table-container">
+                    <table id="login-table">
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>IP地址</th>
+                                <th>登录时间</th>
+                                <th>浏览器信息</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in login_records %}
+                            <tr>
+                                <td>{{ record.user.real_name }} ({{ record.user.school_id }})</td>
+                                <td>{{ record.ip_address }}</td>
+                                <td>{{ record.login_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                                    {{ record.user_agent[:50] }}{% if record.user_agent|length > 50 %}...{% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" action="{{ url_for('ban_ip') }}" style="display: inline;">
+                                        <input type="hidden" name="ip_address" value="{{ record.ip_address }}">
+                                        <input type="hidden" name="reason" value="手动封禁">
+                                        <button type="submit" class="btn btn-ban" 
+                                                onclick="return confirm('确定要封禁IP {{ record.ip_address }} 吗？')">封禁IP</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="no-data">暂无登录记录</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- 投票分析 -->
+            <div id="vote-analysis" class="tab-content">
+                <input type="text" class="search-box" placeholder="搜索IP地址..." 
+                       onkeyup="filterTable(this, 'vote-table')">
+                
+                <div class="table-container">
+                    <table id="vote-table">
+                        <thead>
+                            <tr>
+                                <th>IP地址</th>
+                                <th>投票次数</th>
+                                <th>最近投票时间</th>
+                                <th>关联用户数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analysis in vote_analysis %}
+                            <tr>
+                                <td>{{ analysis.ip_address }}</td>
+                                <td>
+                                    <span class="{% if analysis.vote_count > settings.max_votes_per_ip %}warning-text{% endif %}">
+                                        {{ analysis.vote_count }}
+                                        {% if analysis.vote_count > settings.max_votes_per_ip %}⚠️{% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ analysis.last_vote_time.strftime('%Y-%m-%d %H:%M:%S') if analysis.last_vote_time else '-' }}</td>
+                                <td>
+                                    <span class="{% if analysis.user_count > settings.max_accounts_per_ip %}warning-text{% endif %}">
+                                        {{ analysis.user_count }}
+                                        {% if analysis.user_count > settings.max_accounts_per_ip %}⚠️{% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if analysis.vote_count > settings.max_votes_per_ip or analysis.user_count > settings.max_accounts_per_ip %}
+                                        <form method="post" action="{{ url_for('ban_ip') }}" style="display: inline;">
+                                            <input type="hidden" name="ip_address" value="{{ analysis.ip_address }}">
+                                            <input type="hidden" name="reason" value="投票/登录异常">
+                                            <button type="submit" class="btn btn-ban" 
+                                                    onclick="return confirm('确定要封禁IP {{ analysis.ip_address }} 吗？')">封禁IP</button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="no-data">暂无投票记录</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function switchTab(evt, tabName) {
+            var i, tabcontent, tabs;
+            
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            
+            tabs = document.getElementsByClassName("tab");
+            for (i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+        
+        function filterTable(input, tableId) {
+            var filter = input.value.toUpperCase();
+            var table = document.getElementById(tableId);
+            var tr = table.getElementsByTagName("tr");
+            
+            for (var i = 1; i < tr.length; i++) {
+                var found = false;
+                var td = tr[i].getElementsByTagName("td");
+                
+                for (var j = 0; j < td.length; j++) {
+                    if (td[j] && td[j].innerHTML.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                tr[i].style.display = found ? "" : "none";
+            }
+        }
+    </script>
+</body>
+</html>

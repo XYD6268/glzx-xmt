@@ -434,6 +434,27 @@
         </div>
         
         <div class="title">{{ contest_title }}</div>
+        
+        <!-- 投票时间状态提示 -->
+        {% if not can_vote_now %}
+        <div style="background: #ff9800; color: white; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <strong>{{ vote_message }}</strong>
+        </div>
+        {% endif %}
+        
+        <!-- 投票时间信息 -->
+        {% if vote_start_time or vote_end_time %}
+        <div style="background: #333; color: #ccc; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-size: 0.9rem;">
+            {% if vote_start_time %}
+            投票开始：{{ vote_start_time.strftime('%Y年%m月%d日 %H:%M') }}
+            {% endif %}
+            {% if vote_start_time and vote_end_time %} | {% endif %}
+            {% if vote_end_time %}
+            投票结束：{{ vote_end_time.strftime('%Y年%m月%d日 %H:%M') }}
+            {% endif %}
+        </div>
+        {% endif %}
+        
         {% if current_user %}
             <a href="/upload" class="nav-btn">上传新照片</a>
         {% endif %}
@@ -452,7 +473,9 @@
                 <div class="photo-vote-row">
                     <span id="vote-count-{{ photo.id }}">票数：{{ photo.vote_count }}</span>
                 </div>
-                {% if one_vote_per_user and user_has_voted %}
+                {% if not can_vote_now %}
+                    <button class="photo-vote-btn" disabled>{{ vote_message.split('：')[0] if '：' in vote_message else vote_message }}</button>
+                {% elif one_vote_per_user and user_has_voted %}
                     {% if user_voted_photo_id == photo.id %}
                         <button class="photo-vote-btn voted" disabled>已投票</button>
                     {% else %}
@@ -487,9 +510,10 @@
     <!-- 隐藏数据元素 -->
     <div id="user-data" 
          data-logged-in="{% if current_user %}true{% else %}false{% endif %}"
-         data-can-vote="{% if current_user and allow_vote %}true{% else %}false{% endif %}"
+         data-can-vote="{% if current_user and allow_vote and can_vote_now %}true{% else %}false{% endif %}"
          data-one-vote-per-user="{% if one_vote_per_user %}true{% else %}false{% endif %}"
          data-user-has-voted="{% if user_has_voted %}true{% else %}false{% endif %}"
+         data-vote-message="{{ vote_message }}"
          style="display: none;"></div>
     
     <script>
@@ -534,7 +558,8 @@
                 currentVotePhotoId = photoId;
                 showVoteConfirm();
             } else if (userLoggedIn) {
-                alert('您当前无法投票');
+                const voteMessage = userData.getAttribute('data-vote-message');
+                alert(voteMessage || '您当前无法投票');
             } else {
                 alert('请先登录后再投票');
             }

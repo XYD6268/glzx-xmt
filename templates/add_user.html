@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加用户</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 32px auto;
+            padding: 24px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .title {
+            text-align: center;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            margin-bottom: 24px;
+        }
+        .nav-btn {
+            display: inline-block;
+            margin: 0 8px 16px 0;
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ddd;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        .form-group .help-text {
+            font-size: 0.85rem;
+            color: #bbb;
+            margin-top: 4px;
+        }
+        .btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.2s;
+            margin: 8px 8px 0 0;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .flash {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        .flash.error {
+            background: #f44336;
+            color: white;
+        }
+        .flash.success {
+            background: #4caf50;
+            color: white;
+        }
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 95%;
+                margin: 20px auto;
+                padding: 16px;
+            }
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .nav-btn {
+                display: block;
+                width: 100%;
+                margin: 8px 0;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px auto;
+                padding: 12px;
+            }
+            .btn {
+                width: 100%;
+                margin: 8px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">添加用户</div>
+        
+        <a href="{{ url_for('manage_users') }}" class="nav-btn">返回用户管理</a>
+        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="post">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="school_id">校学号 *</label>
+                    <input type="text" id="school_id" name="school_id" required 
+                           value="{{ request.form.school_id if request.form.school_id }}"
+                           pattern="[0-9]{10}" maxlength="10">
+                    <div class="help-text">请输入10位数字的学号</div>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码 *</label>
+                    <input type="password" id="password" name="password" required minlength="6">
+                    <div class="help-text">密码长度至少6位</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="real_name">真实姓名 *</label>
+                    <input type="text" id="real_name" name="real_name" required 
+                           value="{{ request.form.real_name if request.form.real_name }}">
+                </div>
+                <div class="form-group">
+                    <label for="class_name">班级 *</label>
+                    <input type="text" id="class_name" name="class_name" required 
+                           value="{{ request.form.class_name if request.form.class_name }}">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="qq_number">QQ号 *</label>
+                    <input type="text" id="qq_number" name="qq_number" required 
+                           value="{{ request.form.qq_number if request.form.qq_number }}"
+                           pattern="[0-9]{5,11}" maxlength="11">
+                    <div class="help-text">请输入5-11位数字的QQ号</div>
+                </div>
+                <div class="form-group">
+                    <label for="role">用户角色 *</label>
+                    <select id="role" name="role" required>
+                        <option value="1" {% if request.form.role == '1' %}selected{% endif %}>普通用户</option>
+                        <option value="2" {% if request.form.role == '2' %}selected{% endif %}>管理员</option>
+                        <option value="3" {% if request.form.role == '3' %}selected{% endif %}>系统管理员</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="is_active" value="1" 
+                           {% if request.form.is_active == '1' or not request.form.is_active %}checked{% endif %}>
+                    账户激活状态
+                </label>
+                <div class="help-text">取消勾选将创建禁用状态的账户</div>
+            </div>
+            
+            <button type="submit" class="btn">创建用户</button>
+            <a href="{{ url_for('manage_users') }}" class="btn btn-secondary">取消</a>
+        </form>
+    </div>
+    
+    <script>
+        // 自动格式化输入
+        document.getElementById('school_id').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '').substring(0, 10);
+        });
+        
+        document.getElementById('qq_number').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '').substring(0, 11);
+        });
+        
+        // 表单验证
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const schoolId = document.getElementById('school_id').value;
+            const password = document.getElementById('password').value;
+            const realName = document.getElementById('real_name').value;
+            const className = document.getElementById('class_name').value;
+            const qqNumber = document.getElementById('qq_number').value;
+            
+            if (schoolId.length !== 10) {
+                alert('学号必须是10位数字');
+                e.preventDefault();
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('密码长度至少6位');
+                e.preventDefault();
+                return;
+            }
+            
+            if (qqNumber.length < 5 || qqNumber.length > 11) {
+                alert('QQ号必须是5-11位数字');
+                e.preventDefault();
+                return;
+            }
+            
+            if (!realName.trim() || !className.trim()) {
+                alert('请填写完整的姓名和班级信息');
+                e.preventDefault();
+                return;
+            }
+        });
+    </script>
+</body>
+</html>

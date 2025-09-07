@@ -328,8 +328,11 @@
         <div class="header">
             <h1 class="title">管理面板</h1>
             <div class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
-                <a href="{{ url_for('admin_review') }}" class="nav-btn">照片审核</a>
+                <a href="{{ url_for('index') }}" class="nav-btn">🏠 返回首页</a>
+                <a href="{{ url_for('admin_review') }}" class="nav-btn">📝 照片审核</a>
+                <a href="{{ url_for('manage_users') }}" class="nav-btn">👥 用户管理</a>
+                <a href="{{ url_for('ip_management') }}" class="nav-btn">🛡️ IP管理</a>
+                <a href="{{ url_for('settings') }}" class="nav-btn">⚙️ 系统设置</a>
             </div>
         </div>
         

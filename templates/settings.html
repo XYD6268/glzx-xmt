@@ -42,7 +42,7 @@
             display: block;
             margin-bottom: 8px;
         }
-        input[type="text"] {
+        input[type="text"], input[type="datetime-local"] {
             width: 100%;
             padding: 10px;
             margin-bottom: 16px;
@@ -50,6 +50,10 @@
             border: none;
             background: #333;
             color: #fff;
+            box-sizing: border-box;
+        }
+        input[type="datetime-local"] {
+            color-scheme: dark;
         }
         .checkbox-group {
             margin-bottom: 16px;
@@ -129,7 +133,7 @@
                 min-height: 44px;
                 box-sizing: border-box;
             }
-            input[type="text"] {
+            input[type="text"], input[type="datetime-local"] {
                 padding: 12px;
                 font-size: 16px; /* 防止iOS缩放 */
             }
@@ -138,6 +142,10 @@
                 font-size: 1rem;
                 min-height: 44px;
             }
+            .time-settings h3 {
+                font-size: 1.1rem;
+                margin: 20px 0 12px 0;
+            }
         }
     </style>
 </head>
@@ -145,8 +153,10 @@
     <div class="container">
         <div class="title">系统设置</div>
         
-        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
-        <a href="{{ url_for('admin') }}" class="nav-btn">管理面板</a>
+        <a href="{{ url_for('index') }}" class="nav-btn">🏠 返回首页</a>
+        <a href="{{ url_for('admin') }}" class="nav-btn">📊 管理面板</a>
+        <a href="{{ url_for('manage_users') }}" class="nav-btn">👥 用户管理</a>
+        <a href="{{ url_for('ip_management') }}" class="nav-btn">🛡️ IP管理</a>
         
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -182,6 +192,100 @@
                 <small style="color: #888; font-size: 0.8rem; margin-left: 24px; display: block;">
                     启用此选项后，每个用户在整个投票期间只能为一个作品投票
                 </small>
+            </div>
+            
+            <div class="time-settings">
+                <h3 style="color: #fff; margin: 24px 0 16px 0; font-size: 1.2rem;">投票时间设置</h3>
+                
+                <label for="vote_start_time">投票开始时间（可选）</label>
+                <input type="datetime-local" 
+                       name="vote_start_time" 
+                       id="vote_start_time" 
+                       value="{% if settings.vote_start_time %}{{ settings.vote_start_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                <small style="color: #888; font-size: 0.8rem; display: block; margin-bottom: 16px;">
+                    留空表示立即开始投票
+                </small>
+                
+                <label for="vote_end_time">投票结束时间（可选）</label>
+                <input type="datetime-local" 
+                       name="vote_end_time" 
+                       id="vote_end_time" 
+                       value="{% if settings.vote_end_time %}{{ settings.vote_end_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                <small style="color: #888; font-size: 0.8rem; display: block; margin-bottom: 16px;">
+                    留空表示不限制结束时间
+                </small>
+            </div>
+            
+            <div style="border-top: 2px solid #eee; padding-top: 24px; margin-top: 24px;">
+                <h3 style="color: #333; margin-bottom: 16px; font-size: 1.2rem;">🛡️ 风控设置</h3>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="risk_control_enabled" {% if settings.risk_control_enabled %}checked{% endif %}>
+                        启用自动风控功能
+                    </label>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label for="max_votes_per_ip">单IP投票次数限制</label>
+                        <input type="number" 
+                               name="max_votes_per_ip" 
+                               id="max_votes_per_ip" 
+                               value="{{ settings.max_votes_per_ip }}" 
+                               min="1" max="100" required>
+                        <small style="color: #888; font-size: 0.8rem; display: block;">
+                            时间窗口内最大投票次数
+                        </small>
+                    </div>
+                    
+                    <div>
+                        <label for="vote_time_window">投票时间窗口（分钟）</label>
+                        <input type="number" 
+                               name="vote_time_window" 
+                               id="vote_time_window" 
+                               value="{{ settings.vote_time_window }}" 
+                               min="1" max="1440" required>
+                        <small style="color: #888; font-size: 0.8rem; display: block;">
+                            统计投票频率的时间窗口
+                        </small>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label for="max_accounts_per_ip">单IP登录账号数限制</label>
+                        <input type="number" 
+                               name="max_accounts_per_ip" 
+                               id="max_accounts_per_ip" 
+                               value="{{ settings.max_accounts_per_ip }}" 
+                               min="1" max="50" required>
+                        <small style="color: #888; font-size: 0.8rem; display: block;">
+                            时间窗口内最大登录账号数
+                        </small>
+                    </div>
+                    
+                    <div>
+                        <label for="account_time_window">账号登录时间窗口（分钟）</label>
+                        <input type="number" 
+                               name="account_time_window" 
+                               id="account_time_window" 
+                               value="{{ settings.account_time_window }}" 
+                               min="1" max="1440" required>
+                        <small style="color: #888; font-size: 0.8rem; display: block;">
+                            统计登录频率的时间窗口
+                        </small>
+                    </div>
+                </div>
+                
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <p style="margin: 0; color: #856404; font-size: 0.9rem;">
+                        <strong>⚠️ 风控说明：</strong><br>
+                        • 当单个IP在指定时间窗口内投票次数或登录账号数超过限制时，系统将自动封禁相关账号（管理员除外）<br>
+                        • 封禁是不可逆的，请谨慎设置参数<br>
+                        • 建议根据实际参与人数合理设置限制值
+                    </p>
+                </div>
             </div>
             
             <button class="btn" type="submit">保存设置</button>
