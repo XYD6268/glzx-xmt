@@ -16,9 +16,9 @@ db = SQLAlchemy(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    real_name = db.Column(db.String(50), unique=True, nullable=False)  # 真实姓名作为用户名
+    real_name = db.Column(db.String(50), nullable=False)  # 真实姓名
     password_hash = db.Column(db.String(120), nullable=False)
-    school_id = db.Column(db.String(20), unique=True, nullable=False)  # 校学号
+    school_id = db.Column(db.String(20), unique=True, nullable=False)  # 校学号作为登录账号
     qq_number = db.Column(db.String(15), nullable=False)  # QQ号
     class_name = db.Column(db.String(50), nullable=False)  # 班级
     role = db.Column(db.Integer, default=1)  # 1=普通用户, 2=普通管理员, 3=系统管理员
@@ -105,17 +105,17 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        real_name = request.form['real_name']
+        school_id = request.form['school_id']
         password = request.form['password']
-        user = User.query.filter_by(real_name=real_name).first()
+        user = User.query.filter_by(school_id=school_id).first()
         
         if user and check_password_hash(user.password_hash, password) and user.is_active:
             session['user_id'] = user.id
-            session['real_name'] = user.real_name
+            session['school_id'] = user.school_id
             session['role'] = user.role
             return redirect(url_for('index'))
         else:
-            flash('姓名或密码错误')
+            flash('校学号或密码错误')
     
     return render_template('login.html')
 
@@ -136,10 +136,6 @@ def register():
         # 验证QQ号是否为纯数字且长度合理
         if not qq_number.isdigit() or len(qq_number) < 5 or len(qq_number) > 15:
             flash('QQ号必须为5-15位数字')
-            return render_template('register.html')
-        
-        if User.query.filter_by(real_name=real_name).first():
-            flash('该姓名已被注册')
             return render_template('register.html')
         
         if User.query.filter_by(school_id=school_id).first():
@@ -376,7 +372,7 @@ def change_user_role(user_id, new_role):
     if new_role in [1, 2, 3]:
         user.role = new_role
         db.session.commit()
-        flash(f'用户 {user.real_name} 角色已更改')
+        flash(f'用户 {user.real_name}({user.school_id}) 角色已更改')
     return redirect(url_for('manage_users'))
 
 @app.route('/toggle_user_status/<int:user_id>')
@@ -386,7 +382,7 @@ def toggle_user_status(user_id):
     user.is_active = not user.is_active
     db.session.commit()
     status = '激活' if user.is_active else '禁用'
-    flash(f'用户 {user.real_name} 已{status}')
+    flash(f'用户 {user.real_name}({user.school_id}) 已{status}')
     return redirect(url_for('manage_users'))
 
 if __name__ == '__main__':
@@ -394,16 +390,30 @@ if __name__ == '__main__':
     os.makedirs(app.config['THUMB_FOLDER'], exist_ok=True)
     with app.app_context():
         db.create_all()
-        # 创建默认系统管理员账号
-        if not User.query.filter_by(real_name='系统管理员').first():
-            admin = User(
-                real_name='系统管理员',
-                school_id='000000',  # 默认校学号
-                qq_number='10001',   # 默认QQ号
-                password_hash=generate_password_hash('admin123'),
-                class_name='管理员',
-                role=3
-            )
-            db.session.add(admin)
-            db.session.commit()
+        
+        # 创建预制管理员账号
+        admin_accounts = [
+            {
+                'real_name': '系统管理员',
+                'school_id': '24960023',
+                'qq_number': '2069528060',
+                'password': 'admin123',
+                'class_name': '管理组',
+                'role': 3  # 系统管理员
+            }
+        ]
+        
+        for admin_data in admin_accounts:
+            if not User.query.filter_by(school_id=admin_data['school_id']).first():
+                admin = User(
+                    real_name=admin_data['real_name'],
+                    school_id=admin_data['school_id'],
+                    qq_number=admin_data['qq_number'],
+                    password_hash=generate_password_hash(admin_data['password']),
+                    class_name=admin_data['class_name'],
+                    role=admin_data['role']
+                )
+                db.session.add(admin)
+        
+        db.session.commit()
     app.run(debug=True)
