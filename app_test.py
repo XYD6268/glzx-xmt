@@ -16,9 +16,9 @@ db = SQLAlchemy(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    real_name = db.Column(db.String(50), nullable=False)  # 真实姓名
+    real_name = db.Column(db.String(50), unique=True, nullable=False)  # 真实姓名，现在用作登录账号，必须唯一
     password_hash = db.Column(db.String(120), nullable=False)
-    school_id = db.Column(db.String(20), unique=True, nullable=False)  # 校学号作为登录账号
+    school_id = db.Column(db.String(20), unique=True, nullable=False)  # 校学号
     qq_number = db.Column(db.String(15), nullable=False)  # QQ号
     class_name = db.Column(db.String(50), nullable=False)  # 班级
     role = db.Column(db.Integer, default=1)  # 1=普通用户, 2=普通管理员, 3=系统管理员
@@ -267,7 +267,7 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        school_id = request.form['school_id']
+        real_name = request.form['real_name']
         password = request.form['password']
         client_ip = get_client_ip()
         
@@ -277,7 +277,7 @@ def login():
             flash(f'该IP地址已被封禁：{ban_record.ban_reason}')
             return render_template('login.html')
         
-        user = User.query.filter_by(school_id=school_id).first()
+        user = User.query.filter_by(real_name=real_name).first()
         
         if user and check_password_hash(user.password_hash, password) and user.is_active:
             # 记录登录信息
@@ -305,7 +305,7 @@ def login():
             session['role'] = user.role
             return redirect(url_for('index'))
         else:
-            flash('校学号或密码错误')
+            flash('真实姓名或密码错误')
     
     return render_template('login.html')
 
@@ -330,6 +330,11 @@ def register():
         
         if User.query.filter_by(school_id=school_id).first():
             flash('校学号已存在')
+            return render_template('register.html')
+        
+        # 检查真实姓名是否已存在（因为现在用作登录账号）
+        if User.query.filter_by(real_name=real_name).first():
+            flash('真实姓名已存在，请使用不同的姓名')
             return render_template('register.html')
         
         user = User(
@@ -663,9 +668,9 @@ def add_user():
             flash('QQ号必须为5-15位数字')
             return render_template('add_user.html')
         
-        # 检查校学号是否已存在
-        if User.query.filter_by(school_id=school_id).first():
-            flash('校学号已存在')
+        # 检查真实姓名是否已存在（因为现在用作登录账号）
+        if User.query.filter_by(real_name=real_name).first():
+            flash('真实姓名已存在，请使用不同的姓名')
             return render_template('add_user.html')
         
         # 创建新用户
@@ -889,7 +894,7 @@ if __name__ == '__main__':
         # 创建预制管理员账号
         admin_accounts = [
             {
-                'real_name': '系统管理员',
+                'real_name': '冯怀智',
                 'school_id': '24960023',
                 'qq_number': '2069528060',
                 'password': 'admin123',
@@ -899,7 +904,7 @@ if __name__ == '__main__':
         ]
         
         for admin_data in admin_accounts:
-            if not User.query.filter_by(school_id=admin_data['school_id']).first():
+            if not User.query.filter_by(real_name=admin_data['real_name']).first():
                 admin = User(
                     real_name=admin_data['real_name'],
                     school_id=admin_data['school_id'],

@@ -70,6 +70,14 @@
             border-radius: 4px;
             margin-bottom: 16px;
         }
+        .info {
+            background: #1976d2;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
         @media (max-width: 600px) {
             .container {
                 max-width: 95vw;
@@ -97,6 +105,9 @@
 <body>
     <div class="container">
         <h2>用户注册</h2>
+        <div class="info">
+            注意：真实姓名将用作您的登录账号，请确保填写正确且唯一。
+        </div>
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
