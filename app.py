@@ -62,6 +62,14 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        
+        # 检查用户是否仍然活跃
+        user = User.query.get(session['user_id'])
+        if not user or not user.is_active:
+            session.clear()  # 清除session
+            flash('账户已被禁用，请联系管理员')
+            return redirect(url_for('login'))
+            
         return f(*args, **kwargs)
     return decorated_function
 
@@ -70,8 +78,13 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        
         user = User.query.get(session['user_id'])
-        if not user or user.role < 2:
+        if not user or not user.is_active:
+            session.clear()  # 清除session
+            flash('账户已被禁用，请联系管理员')
+            return redirect(url_for('login'))
+        elif user.role < 2:
             flash('需要管理员权限')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
@@ -82,8 +95,13 @@ def super_admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        
         user = User.query.get(session['user_id'])
-        if not user or user.role < 3:
+        if not user or not user.is_active:
+            session.clear()  # 清除session
+            flash('账户已被禁用，请联系管理员')
+            return redirect(url_for('login'))
+        elif user.role < 3:
             flash('需要系统管理员权限')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
@@ -104,6 +122,10 @@ def index():
     current_user = None
     if 'user_id' in session:
         current_user = User.query.get(session['user_id'])
+        # 检查用户是否仍然活跃
+        if current_user and not current_user.is_active:
+            session.clear()  # 清除session
+            current_user = None
     return render_template('index.html', 
                          contest_title=settings.contest_title, 
                          photos=photos, 
@@ -118,13 +140,18 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(real_name=real_name).first()
         
-        if user and check_password_hash(user.password_hash, password) and user.is_active:
-            session['user_id'] = user.id
-            session['school_id'] = user.school_id
-            session['role'] = user.role
-            return redirect(url_for('index'))
+        if user:
+            if not user.is_active:
+                flash('账户已被禁用，请联系管理员')
+            elif check_password_hash(user.password_hash, password):
+                session['user_id'] = user.id
+                session['school_id'] = user.school_id
+                session['role'] = user.role
+                return redirect(url_for('index'))
+            else:
+                flash('密码错误')
         else:
-            flash('真实姓名或密码错误')
+            flash('用户不存在')
     
     return render_template('login.html')
 
