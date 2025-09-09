@@ -170,15 +170,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 80px;
-            height: 40px;
-            background: #ff6b6b;
-            color: white;
-            border-radius: 20px;
+            min-width: 60px;
+            height: 30px;
+            background: #444;
+            color: #fff;
+            border-radius: 15px;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             margin-left: 16px;
             flex-shrink: 0;
+            border: 2px solid #666;
         }
         .tied-indicator {
             position: absolute;
@@ -248,6 +249,9 @@
             .vote-count {
                 margin-left: 0;
                 margin-top: 8px;
+                min-width: 50px;
+                height: 25px;
+                font-size: 0.8rem;
             }
         }
         
@@ -325,7 +329,7 @@
                 </div>
                 
                 <div class="vote-count">
-                    ❤️ {{ item.photo.vote_count }}
+                    {{ item.photo.vote_count }}
                 </div>
             </div>
             {% endfor %}
