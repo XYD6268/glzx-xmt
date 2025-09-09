@@ -194,6 +194,16 @@
                 </small>
             </div>
             
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="show_rankings" {% if settings.show_rankings %}checked{% endif %}>
+                    显示票数排行榜
+                </label>
+                <small style="color: #888; font-size: 0.8rem; margin-left: 24px; display: block;">
+                    启用此选项后，已登录用户可以查看票数排行榜
+                </small>
+            </div>
+            
             <div class="time-settings">
                 <h3 style="color: #fff; margin: 24px 0 16px 0; font-size: 1.2rem;">投票时间设置</h3>
                 

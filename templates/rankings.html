@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>票数排行榜 - {{ contest_title }}</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 16px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #444;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .title {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            margin: 0;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        .stats {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        .stats h2 {
+            margin: 0 0 8px 0;
+            color: #4ecdc4;
+        }
+        .flash {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        .rankings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .ranking-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .ranking-item.top-3 {
+            background: linear-gradient(45deg, #2a2a2a, #333);
+            border: 2px solid;
+        }
+        .ranking-item.rank-1 {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .ranking-item.rank-2 {
+            border-color: #c0c0c0;
+            box-shadow: 0 0 20px rgba(192, 192, 192, 0.3);
+        }
+        .ranking-item.rank-3 {
+            border-color: #cd7f32;
+            box-shadow: 0 0 20px rgba(205, 127, 50, 0.3);
+        }
+        .rank-number {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50%;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .rank-1 .rank-number {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #000;
+        }
+        .rank-2 .rank-number {
+            background: linear-gradient(45deg, #c0c0c0, #e5e5e5);
+            color: #000;
+        }
+        .rank-3 .rank-number {
+            background: linear-gradient(45deg, #cd7f32, #daa520);
+            color: #000;
+        }
+        .rank-number.default {
+            background: #444;
+            color: #fff;
+        }
+        .photo-container {
+            width: 120px;
+            height: 80px;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .photo-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .photo-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .photo-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        .vote-count {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            height: 40px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-left: 16px;
+            flex-shrink: 0;
+        }
+        .tied-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ffc107;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal img {
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 12px;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #ccc;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                margin: 16px auto;
+                padding: 12px;
+            }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .nav-links {
+                justify-content: center;
+            }
+            .ranking-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
+            .rank-number {
+                margin-right: 0;
+                margin-bottom: 8px;
+            }
+            .photo-container {
+                margin-right: 0;
+                width: 160px;
+                height: 120px;
+            }
+            .photo-details {
+                justify-content: center;
+            }
+            .vote-count {
+                margin-left: 0;
+                margin-top: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .photo-container {
+                width: 140px;
+                height: 100px;
+            }
+            .rank-number {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+            .photo-title {
+                font-size: 1rem;
+            }
+            .photo-details {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🏆 票数排行榜</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-btn">🏠 返回首页</a>
+                <a href="{{ url_for('my_photos') }}" class="nav-btn">📷 我的照片</a>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="stats">
+            <h2>{{ contest_title }}</h2>
+            <p>共有 {{ total_photos }} 张参赛作品</p>
+        </div>
+        
+        {% if ranked_photos %}
+        <div class="rankings-list">
+            {% for item in ranked_photos %}
+            <div class="ranking-item {% if item.rank <= 3 %}top-3 rank-{{ item.rank }}{% endif %}">
+                {% if item.is_tied %}
+                <div class="tied-indicator">并列</div>
+                {% endif %}
+                
+                <div class="rank-number {% if item.rank > 3 %}default{% endif %}">
+                    {% if item.rank == 1 %}🥇
+                    {% elif item.rank == 2 %}🥈
+                    {% elif item.rank == 3 %}🥉
+                    {% else %}{{ item.rank }}
+                    {% endif %}
+                </div>
+                
+                <div class="photo-container">
+                    <img src="{{ item.photo.thumb_url }}" alt="参赛照片" onclick="showModal('{{ item.photo.url }}')">
+                </div>
+                
+                <div class="photo-info">
+                    <div class="photo-title">
+                        {{ item.photo.title or '未命名作品' }}
+                    </div>
+                    <div class="photo-details">
+                        <span>👤 {{ item.photo.student_name }}</span>
+                        <span>🎓 {{ item.photo.class_name }}</span>
+                        <span>📅 {{ item.photo.created_at.strftime('%m-%d %H:%M') if item.photo.created_at else '' }}</span>
+                    </div>
+                </div>
+                
+                <div class="vote-count">
+                    ❤️ {{ item.photo.vote_count }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h3>暂无参赛作品</h3>
+            <p>还没有通过审核的作品参与排行榜</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 大图弹窗 -->
+    <div class="modal" id="modal" onclick="hideModal()">
+        <img id="modal-img" src="" alt="大图预览">
+    </div>
+    
+    <script>
+        function showModal(url) {
+            const modal = document.getElementById('modal');
+            const modalImg = document.getElementById('modal-img');
+            modalImg.src = url;
+            modal.classList.add('active');
+        }
+        
+        function hideModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideModal();
+            }
+        });
+    </script>
+</body>
+</html>

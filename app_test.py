@@ -80,6 +80,9 @@ class Settings(db.Model):
     vote_start_time = db.Column(db.DateTime, nullable=True)  # 投票开始时间
     vote_end_time = db.Column(db.DateTime, nullable=True)    # 投票结束时间
     
+    # 排行榜设置
+    show_rankings = db.Column(db.Boolean, default=True)  # 是否显示排行榜
+    
     # 风控设置
     risk_control_enabled = db.Column(db.Boolean, default=True)  # 是否启用风控
     max_votes_per_ip = db.Column(db.Integer, default=10)  # 单IP最大投票次数
@@ -291,7 +294,8 @@ def index():
                          user_has_voted=user_has_voted,
                          user_voted_photo_id=user_voted_photo_id,
                          vote_start_time=settings.vote_start_time,
-                         vote_end_time=settings.vote_end_time)
+                         vote_end_time=settings.vote_end_time,
+                         show_rankings=settings.show_rankings)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -535,6 +539,42 @@ def my_photos():
     my_photos = Photo.query.filter_by(user_id=user_id).order_by(Photo.created_at.desc()).all()
     return render_template('my_photos.html', my_photos=my_photos)
 
+# 新增：排行榜页面
+@app.route('/rankings')
+@login_required
+def rankings():
+    settings = get_settings()
+    
+    # 检查是否允许查看排行榜
+    if not settings.show_rankings:
+        flash('排行榜功能已关闭')
+        return redirect(url_for('index'))
+    
+    # 获取已通过审核的照片，按票数排序
+    photos = Photo.query.filter_by(status=1).order_by(Photo.vote_count.desc()).all()
+    
+    # 计算排名（处理并列情况）
+    ranked_photos = []
+    current_rank = 1
+    prev_votes = None
+    
+    for index, photo in enumerate(photos):
+        if prev_votes is not None and photo.vote_count != prev_votes:
+            current_rank = index + 1
+        
+        ranked_photos.append({
+            'rank': current_rank,
+            'photo': photo,
+            'is_tied': prev_votes == photo.vote_count if prev_votes is not None else False
+        })
+        
+        prev_votes = photo.vote_count
+    
+    return render_template('rankings.html', 
+                         contest_title=settings.contest_title,
+                         ranked_photos=ranked_photos,
+                         total_photos=len(photos))
+
 @app.route('/delete_photo/<int:photo_id>')
 @login_required
 def delete_photo(photo_id):
@@ -623,6 +663,7 @@ def settings():
         settings.allow_upload = 'allow_upload' in request.form
         settings.allow_vote = 'allow_vote' in request.form
         settings.one_vote_per_user = 'one_vote_per_user' in request.form
+        settings.show_rankings = 'show_rankings' in request.form
         
         # 处理投票开始时间
         vote_start_str = request.form.get('vote_start_time')

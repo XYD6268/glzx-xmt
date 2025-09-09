@@ -80,6 +80,9 @@ class Settings(db.Model):
     vote_start_time = db.Column(db.DateTime, nullable=True)  # 投票开始时间
     vote_end_time = db.Column(db.DateTime, nullable=True)    # 投票结束时间
     
+    # 排行榜设置
+    show_rankings = db.Column(db.Boolean, default=True)  # 是否显示排行榜
+    
     # 风控设置
     risk_control_enabled = db.Column(db.Boolean, default=True)  # 是否启用风控
     max_votes_per_ip = db.Column(db.Integer, default=10)  # 单IP最大投票次数
@@ -291,7 +294,8 @@ def index():
                          user_has_voted=user_has_voted,
                          user_voted_photo_id=user_voted_photo_id,
                          vote_start_time=settings.vote_start_time,
-                         vote_end_time=settings.vote_end_time)
+                         vote_end_time=settings.vote_end_time,
+                         show_rankings=settings.show_rankings)
 
 # 添加所有其他路由函数（与app_test.py相同）
 @app.route('/login', methods=['GET', 'POST'])
@@ -591,6 +595,42 @@ def my_photos():
     my_photos = Photo.query.filter_by(user_id=user_id).order_by(Photo.created_at.desc()).all()
     return render_template('my_photos.html', my_photos=my_photos)
 
+# 新增：排行榜页面
+@app.route('/rankings')
+@login_required
+def rankings():
+    settings = get_settings()
+    
+    # 检查是否允许查看排行榜
+    if not settings.show_rankings:
+        flash('排行榜功能已关闭')
+        return redirect(url_for('index'))
+    
+    # 获取已通过审核的照片，按票数排序
+    photos = Photo.query.filter_by(status=1).order_by(Photo.vote_count.desc()).all()
+    
+    # 计算排名（处理并列情况）
+    ranked_photos = []
+    current_rank = 1
+    prev_votes = None
+    
+    for index, photo in enumerate(photos):
+        if prev_votes is not None and photo.vote_count != prev_votes:
+            current_rank = index + 1
+        
+        ranked_photos.append({
+            'rank': current_rank,
+            'photo': photo,
+            'is_tied': prev_votes == photo.vote_count if prev_votes is not None else False
+        })
+        
+        prev_votes = photo.vote_count
+    
+    return render_template('rankings.html', 
+                         contest_title=settings.contest_title,
+                         ranked_photos=ranked_photos,
+                         total_photos=len(photos))
+
 # 新增：导出Excel功能
 @app.route('/admin/export_excel')
 @admin_required
@@ -791,6 +831,73 @@ def download_selected_photos():
     except Exception as e:
         flash(f'批量下载失败：{str(e)}')
         return redirect(url_for('admin'))
+
+# 新增：设置页面
+@app.route('/settings', methods=['GET', 'POST'])
+@super_admin_required
+def settings():
+    settings = get_settings()
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        settings.contest_title = request.form['contest_title']
+        settings.allow_upload = 'allow_upload' in request.form
+        settings.allow_vote = 'allow_vote' in request.form
+        settings.one_vote_per_user = 'one_vote_per_user' in request.form
+        settings.show_rankings = 'show_rankings' in request.form
+        
+        # 处理投票开始时间
+        vote_start_str = request.form.get('vote_start_time')
+        if vote_start_str:
+            try:
+                settings.vote_start_time = datetime.strptime(vote_start_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                flash('投票开始时间格式错误')
+                return redirect(url_for('settings'))
+        else:
+            settings.vote_start_time = None
+        
+        # 处理投票结束时间
+        vote_end_str = request.form.get('vote_end_time')
+        if vote_end_str:
+            try:
+                settings.vote_end_time = datetime.strptime(vote_end_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                flash('投票结束时间格式错误')
+                return redirect(url_for('settings'))
+        else:
+            settings.vote_end_time = None
+        
+        # 验证时间逻辑
+        if settings.vote_start_time and settings.vote_end_time:
+            if settings.vote_start_time >= settings.vote_end_time:
+                flash('投票开始时间必须早于结束时间')
+                return redirect(url_for('settings'))
+        
+        # 处理风控设置
+        settings.risk_control_enabled = 'risk_control_enabled' in request.form
+        
+        try:
+            settings.max_votes_per_ip = int(request.form.get('max_votes_per_ip', 5))
+            settings.vote_time_window = int(request.form.get('vote_time_window', 60))
+            settings.max_accounts_per_ip = int(request.form.get('max_accounts_per_ip', 3))
+            settings.account_time_window = int(request.form.get('account_time_window', 60))
+        except ValueError:
+            flash('风控参数必须为正整数')
+            return redirect(url_for('settings'))
+        
+        # 验证风控参数
+        if settings.max_votes_per_ip <= 0 or settings.vote_time_window <= 0 or \
+           settings.max_accounts_per_ip <= 0 or settings.account_time_window <= 0:
+            flash('风控参数必须为正整数')
+            return redirect(url_for('settings'))
+        
+        db.session.commit()
+        flash('设置保存成功')
+        return redirect(url_for('settings'))
+    
+    return render_template('settings.html', settings=settings)
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
