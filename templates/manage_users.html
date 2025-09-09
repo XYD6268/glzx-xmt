@@ -319,7 +319,7 @@
                             <input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox">
                         </td>
                         <td>{{ user.id }}</td>
-                        <td>{{ user.school_id }}</td>
+                        <td>{{ user.school_id if user.school_id else '无学号' }}</td>
                         <td>{{ user.real_name }}</td>
                         <td class="mobile-hide">{{ user.class_name }}</td>
                         <td class="mobile-hide">{{ user.qq_number }}</td>
@@ -345,7 +345,7 @@
                                 <a href="{{ url_for('toggle_user_status', user_id=user.id) }}" class="btn {% if user.is_active %}btn-warning{% else %}btn-success{% endif %}">
                                     {% if user.is_active %}禁用{% else %}启用{% endif %}
                                 </a>
-                                <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn btn-danger" onclick="return confirm('确定要删除用户 {{ user.real_name }}({{ user.school_id }}) 吗？这将删除用户的所有数据！')">删除</a>
+                                <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn btn-danger" onclick="return confirm('确定要删除用户 {{ user.real_name }}{% if user.school_id %}({{ user.school_id }}){% else %}(无学号){% endif %} 吗？这将删除用户的所有数据！')">删除</a>
                             {% else %}
                                 <span style="color: #888;">系统管理员</span>
                             {% endif %}

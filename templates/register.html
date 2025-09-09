@@ -122,8 +122,11 @@
             <label for="class_name">班级</label>
             <input type="text" name="class_name" id="class_name" required placeholder="例如：高三(1)班">
             
-            <label for="school_id">校学号</label>
-            <input type="text" name="school_id" id="school_id" required placeholder="请输入您的校学号（纯数字）" pattern="[0-9]+" title="校学号必须为纯数字">
+            <label for="school_id">校学号（可选）</label>
+            <input type="text" name="school_id" id="school_id" placeholder="请输入您的校学号（纯数字）" pattern="[0-9]*" title="校学号必须为纯数字">
+            <small style="color: #888; font-size: 0.8rem; display: block; margin-top: 5px;">
+                校学号为必填项，如您是老师您可以选择留空
+            </small>
             
             <label for="qq_number">QQ号</label>
             <input type="text" name="qq_number" id="qq_number" required placeholder="请输入您的QQ号" pattern="[0-9]{5,15}" title="QQ号必须为5-15位数字">
@@ -134,7 +137,7 @@
             <button class="btn" type="submit">注册</button>
         </form>
         <div class="link">
-            <a href="{{ url_for('login') }}">已有账号？点击登录</a>
+            已有账号？点击 <a href="{{ url_for('login') }}">登录</a>
         </div>
         <div class="link">
             <a href="{{ url_for('index') }}">返回首页</a>

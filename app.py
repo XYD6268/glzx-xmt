@@ -24,7 +24,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     real_name = db.Column(db.String(50), unique=True, nullable=False)  # 真实姓名，现在用作登录账号，必须唯一
     password_hash = db.Column(db.String(120), nullable=False)
-    school_id = db.Column(db.String(20), unique=True, nullable=False)  # 校学号
+    school_id = db.Column(db.String(20), unique=True, nullable=True)  # 校学号，改为可选
     qq_number = db.Column(db.String(15), nullable=False)  # QQ号
     class_name = db.Column(db.String(50), nullable=False)  # 班级
     role = db.Column(db.Integer, default=1)  # 1=普通用户, 2=普通管理员, 3=系统管理员
@@ -357,13 +357,13 @@ def login():
 def register():
     if request.method == 'POST':
         real_name = request.form['real_name']
-        school_id = request.form['school_id']
+        school_id = request.form.get('school_id', '').strip()
         qq_number = request.form['qq_number']
         password = request.form['password']
         class_name = request.form['class_name']
         
-        # 验证校学号是否为纯数字
-        if not school_id.isdigit():
+        # 验证校学号（如果填写了）
+        if school_id and not school_id.isdigit():
             flash('校学号必须为纯数字')
             return render_template('register.html')
         
@@ -372,7 +372,8 @@ def register():
             flash('QQ号必须为5-15位数字')
             return render_template('register.html')
         
-        if User.query.filter_by(school_id=school_id).first():
+        # 检查校学号是否已存在（如果填写了）
+        if school_id and User.query.filter_by(school_id=school_id).first():
             flash('校学号已存在')
             return render_template('register.html')
         
@@ -383,7 +384,7 @@ def register():
         
         user = User(
             real_name=real_name,
-            school_id=school_id,
+            school_id=school_id if school_id else None,
             qq_number=qq_number,
             password_hash=generate_password_hash(password),
             class_name=class_name,

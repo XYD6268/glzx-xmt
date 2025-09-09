@@ -159,11 +159,11 @@
         <form method="post">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="school_id">校学号 *</label>
-                    <input type="text" id="school_id" name="school_id" required 
+                    <label for="school_id">校学号</label>
+                    <input type="text" id="school_id" name="school_id" 
                            value="{{ request.form.school_id if request.form.school_id }}"
                            pattern="[0-9]{10}" maxlength="10">
-                    <div class="help-text">请输入10位数字的学号</div>
+                    <div class="help-text">可选填，若填写请输入10位数字的学号</div>
                 </div>
                 <div class="form-group">
                     <label for="password">密码 *</label>
@@ -229,13 +229,14 @@
         
         // 表单验证
         document.querySelector('form').addEventListener('submit', function(e) {
-            const schoolId = document.getElementById('school_id').value;
+            const schoolId = document.getElementById('school_id').value.trim();
             const password = document.getElementById('password').value;
             const realName = document.getElementById('real_name').value;
             const className = document.getElementById('class_name').value;
             const qqNumber = document.getElementById('qq_number').value;
             
-            if (schoolId.length !== 10) {
+            // 如果填写了学号，验证学号格式
+            if (schoolId && schoolId.length !== 10) {
                 alert('学号必须是10位数字');
                 e.preventDefault();
                 return;
