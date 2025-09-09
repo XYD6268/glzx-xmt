@@ -74,6 +74,12 @@
             align-items: center;
             flex-wrap: wrap;
         }
+        .export-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
         .btn {
             padding: 8px 16px;
             border: none;
@@ -82,12 +88,61 @@
             background: #555;
             color: white;
             transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
         }
         .btn:hover, .btn.active {
             background: #777;
         }
         .btn.active {
             background: #007bff;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .btn-info {
+            background: #17a2b8;
+        }
+        .btn-info:hover {
+            background: #138496;
+        }
+        .batch-controls {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            display: none;
+        }
+        .batch-controls.active {
+            display: block;
+        }
+        .batch-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .select-all-container {
+            margin-bottom: 10px;
+        }
+        .checkbox-container {
+            position: relative;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 5px;
         }
         .stats {
             text-align: center;
@@ -152,7 +207,7 @@
         }
         .list-header {
             display: grid;
-            grid-template-columns: 100px 150px 100px 100px 80px 80px 80px 120px;
+            grid-template-columns: 60px 100px 150px 100px 100px 80px 80px 80px 120px 60px;
             gap: 10px;
             padding: 12px;
             background: #333;
@@ -162,7 +217,7 @@
         }
         .list-item {
             display: grid;
-            grid-template-columns: 100px 150px 100px 100px 80px 80px 80px 120px;
+            grid-template-columns: 60px 100px 150px 100px 100px 80px 80px 80px 120px 60px;
             gap: 10px;
             padding: 12px;
             background: #2a2a2a;
@@ -258,11 +313,24 @@
                 margin: 10px auto;
                 padding: 8px;
             }
+            .controls {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .export-controls {
+                justify-content: center;
+            }
             .list-header, .list-item {
-                grid-template-columns: 60px 100px 70px 50px 60px;
+                grid-template-columns: 40px 60px 100px 70px 50px 40px 60px;
                 font-size: 0.8rem;
                 gap: 8px;
                 padding: 8px;
+            }
+            .list-header div:nth-child(8), 
+            .list-item div:nth-child(8),
+            .list-header div:nth-child(9), 
+            .list-item div:nth-child(9) {
+                display: none;
             }
             .list-thumb {
                 width: 50px;
@@ -287,10 +355,14 @@
                 gap: 8px;
             }
             .list-header, .list-item {
-                grid-template-columns: 50px 80px 60px 40px 50px;
+                grid-template-columns: 30px 50px 80px 60px 40px 30px;
                 font-size: 0.7rem;
                 gap: 6px;
                 padding: 6px;
+            }
+            .list-header div:nth-child(7), 
+            .list-item div:nth-child(7) {
+                display: none;
             }
             .list-thumb {
                 width: 40px;
@@ -303,6 +375,10 @@
             .controls {
                 padding: 12px;
             }
+            .export-controls {
+                flex-direction: column;
+                gap: 8px;
+            }
         }
         
         @media (max-width: 400px) {
@@ -311,7 +387,7 @@
                 gap: 6px;
             }
             .list-header, .list-item {
-                grid-template-columns: 40px 60px 50px 30px 40px;
+                grid-template-columns: 25px 40px 60px 30px 25px;
                 font-size: 0.6rem;
                 gap: 4px;
                 padding: 4px;
@@ -355,6 +431,29 @@
                 <button class="btn active" onclick="sortPhotos('votes')">按票数</button>
                 <button class="btn" onclick="sortPhotos('time')">按时间</button>
             </div>
+            <div class="export-controls">
+                <span>导出/下载：</span>
+                <a href="{{ url_for('export_excel') }}" class="btn btn-success">📊 导出Excel</a>
+                <a href="{{ url_for('download_all_photos') }}" class="btn btn-info">📦 下载全部照片</a>
+                <button class="btn btn-warning" onclick="toggleBatchMode()">✅ 批量选择</button>
+            </div>
+        </div>
+        
+        <!-- 批量操作控制面板 -->
+        <div id="batch-controls" class="batch-controls">
+            <div class="select-all-container">
+                <label>
+                    <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                    全选/取消全选
+                </label>
+                <span id="selected-count" style="margin-left: 20px; color: #ccc;">已选择: 0 张</span>
+            </div>
+            <form id="batch-form" action="{{ url_for('download_selected_photos') }}" method="post">
+                <div class="batch-buttons">
+                    <button type="submit" class="btn btn-info">📥 下载选中照片</button>
+                    <button type="button" class="btn" onclick="toggleBatchMode()">取消批量模式</button>
+                </div>
+            </form>
         </div>
         
         <div class="stats">
@@ -368,6 +467,9 @@
         <div id="grid-view" class="photo-grid">
             {% for photo in all_photos %}
             <div class="photo-item" data-votes="{{ photo.vote_count }}" data-time="{{ photo.created_at.timestamp() if photo.created_at else 0 }}">
+                <div class="checkbox-container" style="display: none;">
+                    <input type="checkbox" name="photo_ids" value="{{ photo.id }}" onchange="updateSelectedCount()">
+                </div>
                 <img src="{{ photo.thumb_url }}" alt="参赛照片" onclick="showModal('{{ photo.url }}')">
                 <div class="photo-info">
                     {% if photo.title %}
@@ -393,6 +495,9 @@
                         <span class="status-rejected">已拒绝</span>
                     {% endif %}
                 </div>
+                <div style="margin-top: 8px;">
+                    <a href="{{ url_for('download_photo', photo_id=photo.id) }}" class="btn" style="font-size: 12px; padding: 4px 8px;">📥 下载</a>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -400,6 +505,7 @@
         <!-- 列表视图 -->
         <div id="list-view" class="photo-list">
             <div class="list-header">
+                <div>选择</div>
                 <div>缩略图</div>
                 <div>作品名称</div>
                 <div>提交人</div>
@@ -408,9 +514,13 @@
                 <div>状态</div>
                 <div>ID</div>
                 <div>提交时间</div>
+                <div>操作</div>
             </div>
             {% for photo in all_photos %}
             <div class="list-item" data-votes="{{ photo.vote_count }}" data-time="{{ photo.created_at.timestamp() if photo.created_at else 0 }}">
+                <div class="checkbox-container" style="display: none;">
+                    <input type="checkbox" name="photo_ids" value="{{ photo.id }}" onchange="updateSelectedCount()">
+                </div>
                 <img src="{{ photo.thumb_url }}" alt="缩略图" class="list-thumb" onclick="showModal('{{ photo.url }}')">
                 <div>{{ photo.title or '未命名' }}</div>
                 <div>{{ photo.student_name }}</div>
@@ -427,6 +537,9 @@
                 </div>
                 <div>#{{ photo.id }}</div>
                 <div>{{ photo.created_at.strftime('%m-%d %H:%M') if photo.created_at else '' }}</div>
+                <div>
+                    <a href="{{ url_for('download_photo', photo_id=photo.id) }}" class="btn" style="font-size: 11px; padding: 2px 6px;">📥</a>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -440,6 +553,7 @@
     <script>
         let currentView = 'grid';
         let currentSort = 'votes';
+        let batchMode = false;
         
         function switchView(view) {
             // 更新按钮状态
@@ -497,6 +611,58 @@
             listContainer.innerHTML = '';
             listContainer.appendChild(listHeader);
             listItems.forEach(item => listContainer.appendChild(item));
+        }
+        
+        function toggleBatchMode() {
+            batchMode = !batchMode;
+            const batchControls = document.getElementById('batch-controls');
+            const checkboxes = document.querySelectorAll('.checkbox-container');
+            
+            if (batchMode) {
+                batchControls.classList.add('active');
+                checkboxes.forEach(container => {
+                    container.style.display = 'block';
+                });
+            } else {
+                batchControls.classList.remove('active');
+                checkboxes.forEach(container => {
+                    container.style.display = 'none';
+                    const checkbox = container.querySelector('input[type="checkbox"]');
+                    checkbox.checked = false;
+                });
+                document.getElementById('select-all').checked = false;
+                updateSelectedCount();
+            }
+        }
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('select-all');
+            const photoCheckboxes = document.querySelectorAll('input[name="photo_ids"]');
+            
+            photoCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedCount();
+        }
+        
+        function updateSelectedCount() {
+            const checkedBoxes = document.querySelectorAll('input[name="photo_ids"]:checked');
+            const count = checkedBoxes.length;
+            document.getElementById('selected-count').textContent = `已选择: ${count} 张`;
+            
+            // 更新批量表单中的隐藏字段
+            const batchForm = document.getElementById('batch-form');
+            const existingInputs = batchForm.querySelectorAll('input[name="photo_ids"]');
+            existingInputs.forEach(input => input.remove());
+            
+            checkedBoxes.forEach(checkbox => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'photo_ids';
+                hiddenInput.value = checkbox.value;
+                batchForm.appendChild(hiddenInput);
+            });
         }
         
         function showModal(url) {

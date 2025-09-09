@@ -1,9 +1,15 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from PIL import Image
 import os
+import pandas as pd
+import zipfile
+import tempfile
+import shutil
+from io import BytesIO
+from datetime import datetime
 from functools import wraps
 
 app = Flask(__name__)
@@ -913,6 +919,207 @@ def unban_ip(ip_id):
     
     flash(f'IP {ban_record.ip_address} 已解封')
     return redirect(url_for('ip_management'))
+
+# 新增：导出Excel功能
+@app.route('/admin/export_excel')
+@admin_required
+def export_excel():
+    try:
+        # 获取所有照片数据
+        photos = Photo.query.join(User, Photo.user_id == User.id).order_by(Photo.vote_count.desc()).all()
+        
+        # 准备数据
+        data = []
+        for photo in photos:
+            data.append({
+                '照片ID': photo.id,
+                '作品名称': photo.title or '未命名',
+                '学生姓名': photo.student_name,
+                '班级': photo.class_name,
+                '票数': photo.vote_count,
+                '上传时间': photo.created_at.strftime('%Y-%m-%d %H:%M:%S') if photo.created_at else '',
+                '用户QQ号': photo.user.qq_number,
+                '校学号': photo.user.school_id
+            })
+        
+        # 创建DataFrame
+        df = pd.DataFrame(data)
+        
+        # 创建Excel文件
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='照片数据', index=False)
+            
+            # 获取工作表并设置列宽
+            worksheet = writer.sheets['照片数据']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        output.seek(0)
+        
+        # 生成文件名
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'photo_data_export_{timestamp}.xlsx'
+        
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        flash(f'导出失败：{str(e)}')
+        return redirect(url_for('admin'))
+
+# 新增：单个图片下载
+@app.route('/admin/download_photo/<int:photo_id>')
+@admin_required
+def download_photo(photo_id):
+    photo = Photo.query.get_or_404(photo_id)
+    try:
+        file_path = photo.url[1:]  # 去掉开头的 '/'
+        if os.path.exists(file_path):
+            # 获取原始文件名和扩展名
+            original_filename = os.path.basename(file_path)
+            name, ext = os.path.splitext(original_filename)
+            
+            # 生成新的文件名：作品名称_学生姓名_照片ID.扩展名
+            safe_title = "".join(c for c in (photo.title or '未命名') if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_name = "".join(c for c in photo.student_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            download_filename = f"{safe_title}_{safe_name}_{photo.id}{ext}"
+            
+            return send_file(file_path, as_attachment=True, download_name=download_filename)
+        else:
+            flash('文件不存在')
+            return redirect(url_for('admin'))
+    except Exception as e:
+        flash(f'下载失败：{str(e)}')
+        return redirect(url_for('admin'))
+
+# 新增：全体图片打包下载
+@app.route('/admin/download_all_photos')
+@admin_required
+def download_all_photos():
+    try:
+        # 获取所有已通过审核的照片
+        photos = Photo.query.filter_by(status=1).all()
+        
+        if not photos:
+            flash('没有可下载的照片')
+            return redirect(url_for('admin'))
+        
+        # 创建临时目录
+        temp_dir = tempfile.mkdtemp()
+        zip_path = os.path.join(temp_dir, 'all_photos.zip')
+        
+        try:
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for photo in photos:
+                    file_path = photo.url[1:]  # 去掉开头的 '/'
+                    if os.path.exists(file_path):
+                        # 生成ZIP内的文件名
+                        original_filename = os.path.basename(file_path)
+                        name, ext = os.path.splitext(original_filename)
+                        
+                        safe_title = "".join(c for c in (photo.title or '未命名') if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                        safe_name = "".join(c for c in photo.student_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                        zip_filename = f"{safe_title}_{safe_name}_{photo.id}{ext}"
+                        
+                        zipf.write(file_path, zip_filename)
+            
+            # 生成下载文件名
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            download_filename = f'all_photos_{timestamp}.zip'
+            
+            def remove_temp_dir():
+                try:
+                    shutil.rmtree(temp_dir)
+                except:
+                    pass
+            
+            response = send_file(zip_path, as_attachment=True, download_name=download_filename)
+            # 注册清理函数（在响应发送后清理临时文件）
+            response.call_on_close(remove_temp_dir)
+            
+            return response
+            
+        except Exception as e:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            raise e
+            
+    except Exception as e:
+        flash(f'打包下载失败：{str(e)}')
+        return redirect(url_for('admin'))
+
+# 新增：批量选择图片下载
+@app.route('/admin/download_selected_photos', methods=['POST'])
+@admin_required
+def download_selected_photos():
+    try:
+        # 获取选中的照片ID列表
+        photo_ids = request.form.getlist('photo_ids')
+        
+        if not photo_ids:
+            flash('请选择要下载的照片')
+            return redirect(url_for('admin'))
+        
+        # 获取选中的照片
+        photos = Photo.query.filter(Photo.id.in_(photo_ids)).all()
+        
+        if not photos:
+            flash('未找到选中的照片')
+            return redirect(url_for('admin'))
+        
+        # 创建临时目录
+        temp_dir = tempfile.mkdtemp()
+        zip_path = os.path.join(temp_dir, 'selected_photos.zip')
+        
+        try:
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for photo in photos:
+                    file_path = photo.url[1:]  # 去掉开头的 '/'
+                    if os.path.exists(file_path):
+                        # 生成ZIP内的文件名
+                        original_filename = os.path.basename(file_path)
+                        name, ext = os.path.splitext(original_filename)
+                        
+                        safe_title = "".join(c for c in (photo.title or '未命名') if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                        safe_name = "".join(c for c in photo.student_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                        zip_filename = f"{safe_title}_{safe_name}_{photo.id}{ext}"
+                        
+                        zipf.write(file_path, zip_filename)
+            
+            # 生成下载文件名
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            download_filename = f'selected_photos_{len(photos)}_items_{timestamp}.zip'
+            
+            def remove_temp_dir():
+                try:
+                    shutil.rmtree(temp_dir)
+                except:
+                    pass
+            
+            response = send_file(zip_path, as_attachment=True, download_name=download_filename)
+            response.call_on_close(remove_temp_dir)
+            
+            return response
+            
+        except Exception as e:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            raise e
+            
+    except Exception as e:
+        flash(f'批量下载失败：{str(e)}')
+        return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
