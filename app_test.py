@@ -83,6 +83,9 @@ class Settings(db.Model):
     # 排行榜设置
     show_rankings = db.Column(db.Boolean, default=True)  # 是否显示排行榜
     
+    # ICP备案号
+    icp_number = db.Column(db.String(100), nullable=True)  # ICP备案号
+    
     # 风控设置
     risk_control_enabled = db.Column(db.Boolean, default=True)  # 是否启用风控
     max_votes_per_ip = db.Column(db.Integer, default=10)  # 单IP最大投票次数
@@ -295,7 +298,8 @@ def index():
                          user_voted_photo_id=user_voted_photo_id,
                          vote_start_time=settings.vote_start_time,
                          vote_end_time=settings.vote_end_time,
-                         show_rankings=settings.show_rankings)
+                         show_rankings=settings.show_rankings,
+                         settings=settings)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -346,7 +350,8 @@ def login():
         else:
             flash('用户不存在')
     
-    return render_template('login.html')
+    settings = get_settings()
+    return render_template('login.html', settings=settings)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -573,7 +578,8 @@ def rankings():
     return render_template('rankings.html', 
                          contest_title=settings.contest_title,
                          ranked_photos=ranked_photos,
-                         total_photos=len(photos))
+                         total_photos=len(photos),
+                         settings=settings)
 
 @app.route('/delete_photo/<int:photo_id>')
 @login_required
@@ -605,7 +611,8 @@ def delete_photo(photo_id):
 @admin_required
 def admin():
     all_photos = Photo.query.order_by(Photo.vote_count.desc()).all()
-    return render_template('admin.html', all_photos=all_photos)
+    settings = get_settings()
+    return render_template('admin.html', all_photos=all_photos, settings=settings)
 
 @app.route('/admin/review')
 @admin_required
@@ -664,6 +671,7 @@ def settings():
         settings.allow_vote = 'allow_vote' in request.form
         settings.one_vote_per_user = 'one_vote_per_user' in request.form
         settings.show_rankings = 'show_rankings' in request.form
+        settings.icp_number = request.form.get('icp_number', '').strip()
         
         # 处理投票开始时间
         vote_start_str = request.form.get('vote_start_time')

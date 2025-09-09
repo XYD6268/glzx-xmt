@@ -645,5 +645,14 @@
             }
         });
     </script>
+    
+    <!-- ICP备案号显示 -->
+    {% if settings and settings.icp_number %}
+    <footer style="text-align: center; padding: 20px; color: #888; font-size: 0.8rem; background: #111; margin-top: 40px;">
+        <a href="https://beian.miit.gov.cn/" target="_blank" style="color: #888; text-decoration: none;" onmouseover="this.style.color='#ccc'" onmouseout="this.style.color='#888'">
+            {{ settings.icp_number }}
+        </a>
+    </footer>
+    {% endif %}
 </body>
 </html>
