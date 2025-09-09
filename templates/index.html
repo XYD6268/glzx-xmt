@@ -400,9 +400,46 @@
                 padding: 12px;
             }
         }
+        
+        /* 普通用户防护样式 */
+        .user-protection {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .user-protection img {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            pointer-events: auto;
+        }
+        
+        /* 防止右键菜单样式 */
+        .user-protection * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* 禁用高亮选择 */
+        .user-protection *::selection {
+            background: transparent;
+        }
+        
+        .user-protection *::-moz-selection {
+            background: transparent;
+        }
     </style>
 </head>
-<body>
+<body{% if current_user and current_user.role < 2 %} class="user-protection"{% endif %}>
     <div class="container">
         <div class="user-nav">
             {% if current_user %}
@@ -516,6 +553,7 @@
          data-can-vote="{% if current_user and allow_vote and can_vote_now %}true{% else %}false{% endif %}"
          data-one-vote-per-user="{% if one_vote_per_user %}true{% else %}false{% endif %}"
          data-user-has-voted="{% if user_has_voted %}true{% else %}false{% endif %}"
+         data-user-role="{% if current_user %}{{ current_user.role }}{% else %}0{% endif %}"
          data-vote-message="{{ vote_message }}"
          style="display: none;"></div>
     
@@ -526,6 +564,140 @@
         const canVote = userData.getAttribute('data-can-vote') === 'true';
         const oneVotePerUser = userData.getAttribute('data-one-vote-per-user') === 'true';
         const userHasVoted = userData.getAttribute('data-user-has-voted') === 'true';
+        const userRole = parseInt(userData.getAttribute('data-user-role')) || 0;
+        
+        // 检查当前用户是否为普通用户（非管理员）
+        const isNormalUser = userLoggedIn && userRole < 2;
+        
+        // 如果是普通用户，禁用右键和开发者工具
+        if (isNormalUser) {
+            // 禁用右键菜单
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 禁用常见的开发者工具快捷键
+            document.addEventListener('keydown', function(e) {
+                // F12
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+I (开发者工具)
+                if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+J (控制台)
+                if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+C (元素检查器)
+                if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+U (查看源代码)
+                if (e.ctrlKey && e.key === 'u') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+K (网络监控器，Firefox)
+                if (e.ctrlKey && e.shiftKey && e.key === 'K') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+E (网络监控器，Firefox)
+                if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            
+            // 禁用文本选择
+            document.addEventListener('selectstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 禁用拖拽
+            document.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 检测开发者工具是否打开
+            let devtools = {
+                open: false,
+                orientation: null
+            };
+            
+            const threshold = 160;
+            
+            setInterval(function() {
+                if (window.outerHeight - window.innerHeight > threshold || 
+                    window.outerWidth - window.innerWidth > threshold) {
+                    if (!devtools.open) {
+                        devtools.open = true;
+                        // 检测到开发者工具打开，显示警告
+                        alert('请不要尝试查看页面源代码！');
+                        // 可选：记录违规行为
+                        console.clear();
+                    }
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+            
+            // 监控调试器 - 简化版本，减少干扰
+            function detectDebugger() {
+                try {
+                    const start = performance.now();
+                    debugger;
+                    const end = performance.now();
+                    
+                    if (end - start > 100) {
+                        console.clear();
+                        alert('请关闭开发者工具！');
+                    }
+                } catch (e) {
+                    // 忽略错误
+                }
+                
+                setTimeout(detectDebugger, 3000);
+            }
+            
+            // 延迟启动调试器检测，避免正常加载时触发
+            setTimeout(detectDebugger, 5000);
+            
+            // 定期清空控制台
+            setInterval(function() {
+                console.clear();
+            }, 1000);
+            
+            // 禁用打印
+            window.print = function() {
+                alert('打印功能已被禁用');
+                return false;
+            };
+            
+            // 禁用另存为
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    alert('保存功能已被禁用');
+                    return false;
+                }
+            });
+        }
         
         // 存储当前要投票的照片ID
         let currentVotePhotoId = null;

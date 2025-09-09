@@ -18,6 +18,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['THUMB_FOLDER'] = 'static/thumbs'
 app.config['SECRET_KEY'] = 'your-secret-key-here'
+# 禁用默认静态文件路由中的uploads目录访问
+app.static_folder = 'static'
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -599,8 +601,9 @@ def admin_delete_photo(photo_id):
 @login_required
 def my_photos():
     user_id = session.get('user_id')
+    current_user = User.query.get(user_id)
     my_photos = Photo.query.filter_by(user_id=user_id).order_by(Photo.created_at.desc()).all()
-    return render_template('my_photos.html', my_photos=my_photos)
+    return render_template('my_photos.html', my_photos=my_photos, current_user=current_user)
 
 # 新增：排行榜页面
 @app.route('/rankings')
@@ -907,6 +910,89 @@ def settings():
         return redirect(url_for('settings'))
     
     return render_template('settings.html', settings=settings)
+
+# 安全的文件访问路由 - 保护uploads和thumbs目录
+@app.route('/static/uploads/<path:filename>')
+def secure_uploaded_file(filename):
+    if not session.get('user_id'):
+        flash('请先登录')
+        return redirect(url_for('login'))
+    
+    # 查找对应的照片记录
+    file_path = f'static/uploads/{filename}'
+    photo = Photo.query.filter_by(url=f'/{file_path}').first()
+    
+    if not photo:
+        flash('文件不存在')
+        return redirect(url_for('index'))
+    
+    current_user = User.query.get(session['user_id'])
+    
+    # 检查权限：管理员可以访问所有文件，普通用户只能访问自己的文件
+    if current_user.role >= 2:  # 管理员或系统管理员
+        return send_file(file_path)
+    elif photo.user_id == current_user.id:  # 用户只能访问自己的照片
+        return send_file(file_path)
+    else:
+        flash('您没有权限访问此文件')
+        return redirect(url_for('index'))
+
+@app.route('/static/thumbs/<path:filename>')
+def secure_thumb_file(filename):
+    if not session.get('user_id'):
+        flash('请先登录')
+        return redirect(url_for('login'))
+    
+    # 查找对应的照片记录
+    thumb_path = f'static/thumbs/{filename}'
+    photo = Photo.query.filter_by(thumb_url=f'/{thumb_path}').first()
+    
+    if not photo:
+        flash('文件不存在')
+        return redirect(url_for('index'))
+    
+    current_user = User.query.get(session['user_id'])
+    
+    # 检查权限：管理员可以访问所有缩略图，普通用户只能访问自己的缩略图
+    if current_user.role >= 2:  # 管理员或系统管理员
+        return send_file(thumb_path)
+    elif photo.user_id == current_user.id:  # 用户只能访问自己的照片缩略图
+        return send_file(thumb_path)
+    else:
+        flash('您没有权限访问此文件')
+        return redirect(url_for('index'))
+
+# 为用户添加下载自己照片的功能
+@app.route('/download_my_photo/<int:photo_id>')
+@login_required
+def download_my_photo(photo_id):
+    photo = Photo.query.get_or_404(photo_id)
+    current_user = User.query.get(session['user_id'])
+    
+    # 检查权限：管理员可以下载所有照片，普通用户只能下载自己的照片
+    if current_user.role < 2 and photo.user_id != current_user.id:
+        flash('您只能下载自己的照片')
+        return redirect(url_for('my_photos'))
+    
+    try:
+        file_path = photo.url[1:]  # 去掉开头的 '/'
+        if os.path.exists(file_path):
+            # 生成安全的下载文件名
+            original_filename = os.path.basename(file_path)
+            name, ext = os.path.splitext(original_filename)
+            
+            # 生成新的文件名：作品名称_学生姓名_照片ID.扩展名
+            safe_title = "".join(c for c in (photo.title or '我的作品') if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_name = "".join(c for c in photo.student_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            download_filename = f"{safe_title}_{safe_name}_{photo.id}{ext}"
+            
+            return send_file(file_path, as_attachment=True, download_name=download_filename)
+        else:
+            flash('文件不存在')
+            return redirect(url_for('my_photos'))
+    except Exception as e:
+        flash(f'下载失败：{str(e)}')
+        return redirect(url_for('my_photos'))
 
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

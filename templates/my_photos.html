@@ -152,7 +152,7 @@
         }
         .list-header {
             display: grid;
-            grid-template-columns: 100px 120px 100px 80px 80px 80px 120px;
+            grid-template-columns: 100px 120px 100px 80px 80px 80px 120px 80px;
             gap: 10px;
             padding: 12px;
             background: #333;
@@ -162,7 +162,7 @@
         }
         .list-item {
             display: grid;
-            grid-template-columns: 100px 120px 100px 80px 80px 80px 120px;
+            grid-template-columns: 100px 120px 100px 80px 80px 80px 120px 80px;
             gap: 10px;
             padding: 12px;
             background: #2a2a2a;
@@ -237,6 +237,59 @@
             background: #0056b3;
         }
         
+        .photo-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        .download-btn {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        .download-btn:hover {
+            background: #218838;
+        }
+        
+        /* 普通用户防护样式 */
+        .user-protection {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .user-protection img {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            pointer-events: auto;
+        }
+        
+        .user-protection * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        .user-protection *::selection {
+            background: transparent;
+        }
+        
+        .user-protection *::-moz-selection {
+            background: transparent;
+        }
+        
         /* 响应式设计 */
         @media (max-width: 1200px) {
             .container {
@@ -284,7 +337,7 @@
                 padding: 8px;
             }
             .list-header, .list-item {
-                grid-template-columns: 60px 100px 80px 50px 70px 60px 80px;
+                grid-template-columns: 60px 100px 80px 50px 70px 60px 80px 60px;
                 font-size: 0.8rem;
                 gap: 8px;
                 padding: 8px;
@@ -312,7 +365,7 @@
                 gap: 8px;
             }
             .list-header, .list-item {
-                grid-template-columns: 50px 80px 60px 40px 50px 50px 60px;
+                grid-template-columns: 50px 80px 60px 40px 50px 50px 60px 50px;
                 font-size: 0.7rem;
                 gap: 6px;
                 padding: 6px;
@@ -339,7 +392,7 @@
                 gap: 6px;
             }
             .list-header, .list-item {
-                grid-template-columns: 40px 60px 50px 30px 40px 40px 50px;
+                grid-template-columns: 40px 60px 50px 30px 40px 40px 50px 40px;
                 font-size: 0.6rem;
                 gap: 4px;
                 padding: 4px;
@@ -371,7 +424,7 @@
                 gap: 12px;
             }
             .list-header, .list-item {
-                grid-template-columns: 80px 1fr 80px 60px 100px;
+                grid-template-columns: 80px 1fr 80px 60px 100px 80px;
                 font-size: 0.8rem;
             }
             .list-thumb {
@@ -381,7 +434,7 @@
 
     </style>
 </head>
-<body>
+<body{% if current_user and current_user.role < 2 %} class="user-protection"{% endif %}>
     <div class="container">
         <div class="header">
             <h1 class="title">我的照片</h1>
@@ -450,6 +503,9 @@
                         <span class="status-rejected">已拒绝</span>
                     {% endif %}
                 </div>
+                <div class="photo-actions">
+                    <a href="{{ url_for('download_my_photo', photo_id=photo.id) }}" class="btn download-btn">📥 下载</a>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -464,6 +520,7 @@
                 <div>状态</div>
                 <div>ID</div>
                 <div>上传时间</div>
+                <div>操作</div>
             </div>
             {% for photo in my_photos %}
             <div class="list-item" data-votes="{{ photo.vote_count }}" data-time="{{ photo.created_at.timestamp() if photo.created_at else 0 }}" data-status="{{ photo.status }}">
@@ -482,6 +539,9 @@
                 </div>
                 <div>#{{ photo.id }}</div>
                 <div>{{ photo.created_at.strftime('%m-%d %H:%M') if photo.created_at else '' }}</div>
+                <div>
+                    <a href="{{ url_for('download_my_photo', photo_id=photo.id) }}" class="btn download-btn" style="font-size: 12px; padding: 4px 8px;">📥</a>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -495,12 +555,76 @@
         {% endif %}
     </div>
     
+    <!-- 隐藏数据元素 -->
+    <div id="user-data" 
+         data-user-role="{% if current_user %}{{ current_user.role }}{% else %}0{% endif %}"
+         style="display: none;"></div>
+    
     <!-- 大图弹窗 -->
     <div class="modal" id="modal" onclick="hideModal()">
         <img id="modal-img" src="" alt="原图预览">
     </div>
     
     <script>
+        // 检查当前用户是否为普通用户（非管理员）
+        const userData = document.getElementById('user-data');
+        const userRole = parseInt(userData.getAttribute('data-user-role')) || 0;
+        const isNormalUser = userRole > 0 && userRole < 2;
+        
+        // 如果是普通用户，禁用右键和开发者工具
+        if (isNormalUser) {
+            // 禁用右键菜单
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 禁用常见的开发者工具快捷键
+            document.addEventListener('keydown', function(e) {
+                // F12
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+                if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+U (查看源代码)
+                if (e.ctrlKey && e.key === 'u') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+S (保存)
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    alert('保存功能已被禁用');
+                    return false;
+                }
+            });
+            
+            // 禁用文本选择
+            document.addEventListener('selectstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 禁用拖拽
+            document.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 定期清空控制台
+            setInterval(function() {
+                console.clear();
+            }, 1000);
+        }
+        
         let currentView = 'grid';
         let currentSort = 'time';
         
