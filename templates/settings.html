@@ -306,8 +306,97 @@
                 </div>
             </div>
             
+            <!-- 水印设置 -->
+            <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                <h3 style="color: #333; margin-bottom: 16px; font-size: 1.2rem;">🖼️ 水印设置</h3>
+                
+                <div style="margin-bottom: 16px;">
+                    <label>
+                        <input type="checkbox" name="watermark_enabled" {% if settings.watermark_enabled %}checked{% endif %}>
+                        启用水印功能
+                    </label>
+                    <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 4px;">
+                        启用后，前端展示的图片将自动添加水印（管理员下载的原图无水印）
+                    </small>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label for="watermark_text">水印文本格式：</label>
+                    <input type="text" 
+                           name="watermark_text" 
+                           id="watermark_text" 
+                           value="{{ settings.watermark_text }}" 
+                           placeholder="{contest_title}-{student_name}-{qq_number}">
+                    <small style="color: #666; font-size: 0.8rem; display: block; margin-top: 4px;">
+                        可用变量：{contest_title}（比赛名称）、{student_name}（学生姓名）、{qq_number}（QQ号）、{class_name}（班级）、{title}（作品名称）
+                    </small>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label for="watermark_position">水印位置：</label>
+                        <select name="watermark_position" id="watermark_position" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                            <option value="bottom_right" {% if settings.watermark_position == 'bottom_right' %}selected{% endif %}>右下角</option>
+                            <option value="bottom_left" {% if settings.watermark_position == 'bottom_left' %}selected{% endif %}>左下角</option>
+                            <option value="top_right" {% if settings.watermark_position == 'top_right' %}selected{% endif %}>右上角</option>
+                            <option value="top_left" {% if settings.watermark_position == 'top_left' %}selected{% endif %}>左上角</option>
+                            <option value="center" {% if settings.watermark_position == 'center' %}selected{% endif %}>居中</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="watermark_font_size">字体大小：</label>
+                        <input type="number" 
+                               name="watermark_font_size" 
+                               id="watermark_font_size" 
+                               value="{{ settings.watermark_font_size }}" 
+                               min="10" max="100" required>
+                        <small style="color: #888; font-size: 0.8rem; display: block;">
+                            推荐范围：15-30
+                        </small>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label for="watermark_opacity">透明度：</label>
+                    <input type="range" 
+                           name="watermark_opacity" 
+                           id="watermark_opacity" 
+                           value="{{ settings.watermark_opacity }}" 
+                           min="0.1" max="1.0" step="0.1"
+                           style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #888;">
+                        <span>透明(0.1)</span>
+                        <span id="opacity_value">{{ settings.watermark_opacity }}</span>
+                        <span>不透明(1.0)</span>
+                    </div>
+                </div>
+                
+                <div style="background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <p style="margin: 0; color: #0056b3; font-size: 0.9rem;">
+                        <strong>💡 水印说明：</strong><br>
+                        • 水印只在前端展示时添加，不会修改原始文件<br>
+                        • 管理员下载的图片为无水印原图<br>
+                        • 水印文本支持自定义格式，使用{}包裹变量名<br>
+                        • 建议透明度设置在0.2-0.4之间，既不影响观看又起到标识作用
+                    </p>
+                </div>
+            </div>
+            
             <button class="btn" type="submit">保存设置</button>
         </form>
     </div>
+    
+    <script>
+        // 实时更新透明度值显示
+        const opacitySlider = document.getElementById('watermark_opacity');
+        const opacityValue = document.getElementById('opacity_value');
+        
+        if (opacitySlider && opacityValue) {
+            opacitySlider.addEventListener('input', function() {
+                opacityValue.textContent = this.value;
+            });
+        }
+    </script>
 </body>
 </html>

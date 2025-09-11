@@ -501,7 +501,7 @@
         <div class="photo-grid">
             {% for photo in photos %}
             <div class="photo-item">
-                <img src="{{ photo.thumb_url }}" alt="参赛照片" onclick="showModal('{{ photo.url }}')">
+                <img src="/watermarked_thumb/{{ photo.id }}" alt="参赛照片" onclick="showModal('/watermarked_image/{{ photo.id }}')">
                 {% if photo.title %}
                 <div class="photo-title">{{ photo.title }}</div>
                 {% endif %}

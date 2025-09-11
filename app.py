@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, s
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import os
 import pandas as pd
 import zipfile
@@ -94,6 +94,13 @@ class Settings(db.Model):
     vote_time_window = db.Column(db.Integer, default=60)  # 投票时间窗口（分钟）
     max_accounts_per_ip = db.Column(db.Integer, default=5)  # 单IP最大登录账号数
     account_time_window = db.Column(db.Integer, default=1440)  # 账号登录时间窗口（分钟，默认24小时）
+    
+    # 水印设置
+    watermark_enabled = db.Column(db.Boolean, default=True)  # 是否启用水印
+    watermark_text = db.Column(db.String(200), default="{contest_title}-{student_name}-{qq_number}")  # 水印文本格式
+    watermark_opacity = db.Column(db.Float, default=0.3)  # 水印透明度 (0.1-1.0)
+    watermark_position = db.Column(db.String(20), default="bottom_right")  # 水印位置
+    watermark_font_size = db.Column(db.Integer, default=20)  # 水印字体大小
 
 # 权限装饰器
 def login_required(f):
@@ -153,6 +160,126 @@ def get_settings():
         db.session.add(settings)
         db.session.commit()
     return settings
+
+def add_watermark_to_image(image_path, photo_id):
+    """为图片添加水印"""
+    try:
+        # 获取设置和照片信息
+        settings = get_settings()
+        if not settings.watermark_enabled:
+            return image_path
+        
+        photo = Photo.query.get(photo_id)
+        if not photo:
+            return image_path
+        
+        user = User.query.get(photo.user_id)
+        if not user:
+            return image_path
+        
+        # 格式化水印文本
+        watermark_text = settings.watermark_text.format(
+            contest_title=settings.contest_title,
+            student_name=photo.student_name,
+            qq_number=user.qq_number,
+            class_name=photo.class_name,
+            title=photo.title or '作品'
+        )
+        
+        # 打开原始图片
+        img = Image.open(image_path)
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+        
+        # 创建水印层
+        watermark = Image.new('RGBA', img.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(watermark)
+        
+        # 尝试加载字体，优先使用中文字体
+        font = None
+        font_candidates = []
+        
+        # Windows字体路径
+        if os.name == 'nt':  # Windows
+            font_candidates.extend([
+                "C:/Windows/Fonts/HarmonyOS_Sans_SC_Regular.ttf",  # 鸿蒙字体
+                "C:/Windows/Fonts/HarmonyOS_Sans_Regular.ttf",     # 鸿蒙字体英文版
+                "C:/Windows/Fonts/msyh.ttc",                      # 微软雅黑
+                "C:/Windows/Fonts/msyhbd.ttc",                    # 微软雅黑加粗
+                "C:/Windows/Fonts/simsun.ttc",                    # 宋体
+                "C:/Windows/Fonts/simhei.ttf",                    # 黑体
+                "C:/Windows/Fonts/arial.ttf",                     # Arial
+            ])
+        else:  # Linux/Unix
+            font_candidates.extend([
+                "/usr/share/fonts/truetype/HarmonyOS/HarmonyOS_Sans_SC_Regular.ttf",  # 鸿蒙字体
+                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",            # Noto Sans CJK
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",                   # DejaVu Sans
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",   # Liberation Sans
+                "/System/Library/Fonts/PingFang.ttc",                               # macOS 苹方字体
+                "/System/Library/Fonts/Helvetica.ttc",                              # macOS Helvetica
+            ])
+        
+        # 尝试加载字体
+        for font_path in font_candidates:
+            try:
+                if os.path.exists(font_path):
+                    font = ImageFont.truetype(font_path, settings.watermark_font_size)
+                    print(f"成功加载字体: {font_path}")
+                    break
+            except Exception as e:
+                print(f"加载字体失败 {font_path}: {e}")
+                continue
+        
+        # 如果所有字体都加载失败，使用默认字体
+        if font is None:
+            try:
+                font = ImageFont.load_default()
+                print("使用默认字体")
+            except:
+                # 最后的备选方案，创建一个简单的字体
+                font = ImageFont.load_default()
+                print("使用系统默认字体")
+        
+        # 获取文本尺寸
+        bbox = draw.textbbox((0, 0), watermark_text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # 计算水印位置
+        margin = 20
+        if settings.watermark_position == "top_left":
+            x, y = margin, margin
+        elif settings.watermark_position == "top_right":
+            x, y = img.width - text_width - margin, margin
+        elif settings.watermark_position == "bottom_left":
+            x, y = margin, img.height - text_height - margin
+        elif settings.watermark_position == "center":
+            x, y = (img.width - text_width) // 2, (img.height - text_height) // 2
+        else:  # bottom_right (默认)
+            x, y = img.width - text_width - margin, img.height - text_height - margin
+        
+        # 绘制水印文字
+        alpha = int(255 * settings.watermark_opacity)
+        draw.text((x, y), watermark_text, font=font, fill=(255, 255, 255, alpha))
+        
+        # 合并图片和水印
+        watermarked = Image.alpha_composite(img, watermark)
+        watermarked = watermarked.convert('RGB')
+        
+        # 生成临时文件路径
+        temp_dir = tempfile.mkdtemp()
+        temp_filename = f"watermarked_{photo_id}_{int(datetime.now().timestamp())}.jpg"
+        temp_path = os.path.join(temp_dir, temp_filename)
+        
+        # 保存带水印的图片
+        watermarked.save(temp_path, "JPEG", quality=85)
+        
+        return temp_path
+        
+    except Exception as e:
+        print(f"水印添加失败: {e}")
+        return image_path
 
 def is_voting_time():
     """检查当前时间是否在投票时间范围内"""
@@ -905,6 +1032,27 @@ def settings():
             flash('风控参数必须为正整数')
             return redirect(url_for('settings'))
         
+        # 处理水印设置
+        settings.watermark_enabled = 'watermark_enabled' in request.form
+        settings.watermark_text = request.form.get('watermark_text', '{contest_title}-{student_name}-{qq_number}')
+        settings.watermark_position = request.form.get('watermark_position', 'bottom_right')
+        
+        try:
+            settings.watermark_opacity = float(request.form.get('watermark_opacity', 0.3))
+            settings.watermark_font_size = int(request.form.get('watermark_font_size', 20))
+        except ValueError:
+            flash('水印参数格式错误')
+            return redirect(url_for('settings'))
+        
+        # 验证水印参数
+        if not (0.1 <= settings.watermark_opacity <= 1.0):
+            flash('水印透明度必须在0.1-1.0之间')
+            return redirect(url_for('settings'))
+        
+        if settings.watermark_font_size <= 0 or settings.watermark_font_size > 100:
+            flash('水印字体大小必须在1-100之间')
+            return redirect(url_for('settings'))
+        
         db.session.commit()
         flash('设置保存成功')
         return redirect(url_for('settings'))
@@ -912,6 +1060,93 @@ def settings():
     return render_template('settings.html', settings=settings)
 
 # 安全的文件访问路由 - 保护uploads和thumbs目录
+@app.route('/watermarked_image/<int:photo_id>')
+def get_watermarked_image(photo_id):
+    """获取带水印的图片"""
+    if not session.get('user_id'):
+        return '', 404
+    
+    photo = Photo.query.get_or_404(photo_id)
+    current_user = User.query.get(session['user_id'])
+    
+    # 检查权限：只有登录用户可以查看已审核通过的照片
+    if photo.status != 1:  # 只能查看已审核通过的照片
+        return '', 404
+    
+    try:
+        # 获取原始图片路径
+        original_path = photo.url[1:]  # 去掉开头的 '/'
+        
+        if not os.path.exists(original_path):
+            return '', 404
+        
+        # 生成带水印的图片
+        watermarked_path = add_watermark_to_image(original_path, photo_id)
+        
+        def cleanup_temp_file():
+            try:
+                if watermarked_path != original_path and os.path.exists(watermarked_path):
+                    os.remove(watermarked_path)
+                    # 也删除临时目录（如果为空）
+                    temp_dir = os.path.dirname(watermarked_path)
+                    try:
+                        os.rmdir(temp_dir)
+                    except:
+                        pass
+            except:
+                pass
+        
+        response = send_file(watermarked_path, mimetype='image/jpeg')
+        response.call_on_close(cleanup_temp_file)
+        return response
+        
+    except Exception as e:
+        print(f"获取水印图片失败: {e}")
+        return '', 500
+
+@app.route('/watermarked_thumb/<int:photo_id>')
+def get_watermarked_thumb(photo_id):
+    """获取带水印的缩略图"""
+    if not session.get('user_id'):
+        return '', 404
+    
+    photo = Photo.query.get_or_404(photo_id)
+    
+    # 检查权限：只有登录用户可以查看已审核通过的照片
+    if photo.status != 1:  # 只能查看已审核通过的照片
+        return '', 404
+    
+    try:
+        # 获取缩略图路径
+        thumb_path = photo.thumb_url[1:]  # 去掉开头的 '/'
+        
+        if not os.path.exists(thumb_path):
+            return '', 404
+        
+        # 生成带水印的缩略图
+        watermarked_path = add_watermark_to_image(thumb_path, photo_id)
+        
+        def cleanup_temp_file():
+            try:
+                if watermarked_path != thumb_path and os.path.exists(watermarked_path):
+                    os.remove(watermarked_path)
+                    # 也删除临时目录（如果为空）
+                    temp_dir = os.path.dirname(watermarked_path)
+                    try:
+                        os.rmdir(temp_dir)
+                    except:
+                        pass
+            except:
+                pass
+        
+        response = send_file(watermarked_path, mimetype='image/jpeg')
+        response.call_on_close(cleanup_temp_file)
+        return response
+        
+    except Exception as e:
+        print(f"获取水印缩略图失败: {e}")
+        return '', 500
+
 @app.route('/static/uploads/<path:filename>')
 def secure_uploaded_file(filename):
     if not session.get('user_id'):
