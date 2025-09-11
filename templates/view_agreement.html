@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ agreement.title }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .agreement-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        .agreement-header {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .agreement-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .agreement-content {
+            padding: 30px;
+            line-height: 1.8;
+        }
+        .agreement-content h2,
+        .agreement-content h3,
+        .agreement-content h4 {
+            color: #333;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        .agreement-content p {
+            margin-bottom: 15px;
+        }
+        .agreement-content ul,
+        .agreement-content ol {
+            margin-bottom: 15px;
+            padding-left: 30px;
+        }
+        .agreement-content li {
+            margin-bottom: 8px;
+        }
+        .agreement-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .agreement-content a:hover {
+            text-decoration: underline;
+        }
+        .agreement-content strong {
+            font-weight: bold;
+            color: #333;
+        }
+        .agreement-footer {
+            padding: 20px;
+            background: #f8f9fa;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+            color: #666;
+            font-size: 14px;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .back-btn:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="agreement-container">
+        <div class="agreement-header">
+            <h1>{{ agreement.title }}</h1>
+        </div>
+        
+        <div class="agreement-content">
+            {{ agreement.content | safe }}
+        </div>
+        
+        <div class="agreement-footer">
+            <p>最小阅读时间：{{ agreement.min_read_time }} 秒</p>
+            <p>协议类型：
+                {% if agreement.agreement_type == 'register' %}
+                    用户注册协议
+                {% elif agreement.agreement_type == 'upload' %}
+                    投稿协议
+                {% else %}
+                    {{ agreement.agreement_type }}
+                {% endif %}
+            </p>
+            <a href="javascript:window.close()" class="back-btn">关闭窗口</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if agreement %}编辑协议{% else %}添加协议{% endif %}</title>
+    <style>
+        body {
+            background: #181818;
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 32px auto;
+            padding: 16px;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0006;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #444;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .title {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            margin: 0;
+        }
+        .nav-btn {
+            padding: 8px 16px;
+            background: #444;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #666;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #333;
+            color: #fff;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .preview-btn {
+            background: #17a2b8;
+            color: white;
+            margin-left: auto;
+        }
+        .preview-btn:hover {
+            background: #138496;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .example-box {
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        .example-box h4 {
+            margin-top: 0;
+            color: #ffc107;
+        }
+        .example-box code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .flash-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">{% if agreement %}✏️ 编辑协议{% else %}➕ 添加协议{% endif %}</h1>
+            <a href="{{ url_for('agreement_management') }}" class="nav-btn">📄 协议管理</a>
+        </div>
+
+        <!-- Flash消息 -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message flash-success">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="title">协议标题</label>
+                <input type="text" id="title" name="title" 
+                       value="{{ agreement.title if agreement else '' }}" 
+                       placeholder="例如：用户注册协议" required>
+                <div class="help-text">协议的标题，将显示在弹窗顶部</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="agreement_type">协议类型</label>
+                    <select id="agreement_type" name="agreement_type" required>
+                        <option value="register" {% if agreement and agreement.agreement_type == 'register' %}selected{% endif %}>注册协议</option>
+                        <option value="upload" {% if agreement and agreement.agreement_type == 'upload' %}selected{% endif %}>投稿协议</option>
+                    </select>
+                    <div class="help-text">选择协议应用的场景</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="min_read_time">最小阅读时间（秒）</label>
+                    <input type="number" id="min_read_time" name="min_read_time" 
+                           value="{{ agreement.min_read_time if agreement else 10 }}" 
+                           min="1" max="300" required>
+                    <div class="help-text">用户必须阅读的最短时间</div>
+                </div>
+            </div>
+
+            {% if agreement %}
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="is_active" name="is_active" 
+                           {% if agreement.is_active %}checked{% endif %}>
+                    <label for="is_active">启用此协议</label>
+                </div>
+                <div class="help-text">禁用的协议不会显示给用户</div>
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="content">协议内容（HTML格式）</label>
+                <textarea id="content" name="content" placeholder="请输入协议内容，支持HTML格式..." required>{{ agreement.content if agreement else '' }}</textarea>
+                <div class="help-text">支持HTML标签，可以使用样式、链接等</div>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">💾 保存协议</button>
+                <a href="{{ url_for('agreement_management') }}" class="btn btn-secondary">❌ 取消</a>
+                <button type="button" class="btn preview-btn" onclick="previewAgreement()">👁️ 预览效果</button>
+            </div>
+        </form>
+
+        <div class="example-box">
+            <h4>💡 HTML示例</h4>
+            <p>你可以使用以下HTML标签来丰富协议内容：</p>
+            <ul>
+                <li><code>&lt;h3&gt;标题&lt;/h3&gt;</code> - 添加标题</li>
+                <li><code>&lt;p&gt;段落内容&lt;/p&gt;</code> - 添加段落</li>
+                <li><code>&lt;strong&gt;加粗文本&lt;/strong&gt;</code> - 加粗重要内容</li>
+                <li><code>&lt;a href="https://example.com"&gt;链接&lt;/a&gt;</code> - 添加外部链接</li>
+                <li><code>&lt;ul&gt;&lt;li&gt;列表项&lt;/li&gt;&lt;/ul&gt;</code> - 添加列表</li>
+                <li><code>&lt;br&gt;</code> - 换行</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function previewAgreement() {
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            const minReadTime = document.getElementById('min_read_time').value;
+            
+            if (!title || !content) {
+                alert('请先填写标题和内容');
+                return;
+            }
+            
+            // 创建预览窗口
+            const previewWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="zh-cn">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>协议预览</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Arial, sans-serif;
+                            line-height: 1.6;
+                            color: #333;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 20px;
+                            background: #f5f5f5;
+                        }
+                        .agreement-modal {
+                            background: white;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                            overflow: hidden;
+                        }
+                        .agreement-header {
+                            background: #007bff;
+                            color: white;
+                            padding: 20px;
+                            text-align: center;
+                        }
+                        .agreement-header h2 {
+                            margin: 0;
+                            font-size: 1.5rem;
+                        }
+                        .agreement-content {
+                            padding: 30px;
+                            max-height: 400px;
+                            overflow-y: auto;
+                        }
+                        .agreement-footer {
+                            padding: 20px;
+                            background: #f8f9fa;
+                            text-align: center;
+                            border-top: 1px solid #dee2e6;
+                        }
+                        .timer-info {
+                            color: #666;
+                            margin-bottom: 15px;
+                            font-size: 14px;
+                        }
+                        .btn {
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            margin: 0 5px;
+                        }
+                        .btn-primary {
+                            background: #007bff;
+                            color: white;
+                        }
+                        .btn-secondary {
+                            background: #6c757d;
+                            color: white;
+                        }
+                        .preview-notice {
+                            background: #fff3cd;
+                            color: #856404;
+                            padding: 15px;
+                            margin-bottom: 20px;
+                            border-radius: 4px;
+                            text-align: center;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="preview-notice">
+                        <strong>🔍 这是协议预览效果</strong><br>
+                        实际使用时将以弹窗形式显示，用户需要阅读 ${minReadTime} 秒后才能同意
+                    </div>
+                    
+                    <div class="agreement-modal">
+                        <div class="agreement-header">
+                            <h2>${title}</h2>
+                        </div>
+                        <div class="agreement-content">
+                            ${content}
+                        </div>
+                        <div class="agreement-footer">
+                            <div class="timer-info">
+                                需要阅读 ${minReadTime} 秒后才能同意协议
+                            </div>
+                            <button class="btn btn-secondary">暂不同意</button>
+                            <button class="btn btn-primary">我已阅读并同意</button>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            previewWindow.document.close();
+        }
+    </script>
+</body>
+</html>

@@ -143,5 +143,27 @@
             <a href="{{ url_for('index') }}">返回首页</a>
         </div>
     </div>
+    
+    <!-- 协议弹窗脚本 -->
+    <script src="{{ url_for('static', filename='js/agreement-modal.js') }}"></script>
+    <script>
+        // 拦截表单提交，先检查协议
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault(); // 阻止默认提交
+            
+            const form = this;
+            
+            // 检查并显示注册协议
+            window.agreementModal.checkAndShow('register', function(agreed) {
+                if (agreed) {
+                    // 用户同意协议，提交表单
+                    form.submit();
+                } else {
+                    // 用户不同意协议，显示提示
+                    alert('必须同意用户协议才能注册');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -102,6 +102,25 @@ class Settings(db.Model):
     watermark_position = db.Column(db.String(20), default="bottom_right")  # 水印位置
     watermark_font_size = db.Column(db.Integer, default=20)  # 水印字体大小
 
+class Agreement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)  # 协议标题
+    content = db.Column(db.Text, nullable=False)  # 协议内容（HTML格式）
+    agreement_type = db.Column(db.String(20), nullable=False)  # 协议类型：register, upload
+    min_read_time = db.Column(db.Integer, default=10)  # 最小阅读时间（秒）
+    is_active = db.Column(db.Boolean, default=True)  # 是否启用
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+class UserAgreementRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # 用户ID，注册时可能为空
+    agreement_id = db.Column(db.Integer, db.ForeignKey('agreement.id'), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=False)  # IP地址
+    read_time = db.Column(db.Integer, nullable=False)  # 实际阅读时间（秒）
+    agreed_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    session_id = db.Column(db.String(100), nullable=True)  # 会话ID，用于注册前的协议记录
+
 # 权限装饰器
 def login_required(f):
     @wraps(f)
@@ -769,6 +788,157 @@ def rankings():
                          total_photos=len(photos),
                          settings=settings)
 
+# 协议管理相关路由
+@app.route('/agreement_management')
+@super_admin_required
+def agreement_management():
+    agreements = Agreement.query.all()
+    return render_template('agreement_management.html', agreements=agreements)
+
+@app.route('/add_agreement', methods=['GET', 'POST'])
+@super_admin_required
+def add_agreement():
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        agreement_type = request.form['agreement_type']
+        min_read_time = int(request.form.get('min_read_time', 10))
+        
+        agreement = Agreement(
+            title=title,
+            content=content,
+            agreement_type=agreement_type,
+            min_read_time=min_read_time
+        )
+        db.session.add(agreement)
+        db.session.commit()
+        
+        flash('协议添加成功')
+        return redirect(url_for('agreement_management'))
+    
+    return render_template('edit_agreement.html', agreement=None)
+
+@app.route('/edit_agreement/<int:agreement_id>', methods=['GET', 'POST'])
+@super_admin_required
+def edit_agreement(agreement_id):
+    agreement = Agreement.query.get_or_404(agreement_id)
+    
+    if request.method == 'POST':
+        agreement.title = request.form['title']
+        agreement.content = request.form['content']
+        agreement.agreement_type = request.form['agreement_type']
+        agreement.min_read_time = int(request.form.get('min_read_time', 10))
+        agreement.is_active = 'is_active' in request.form
+        
+        db.session.commit()
+        flash('协议更新成功')
+        return redirect(url_for('agreement_management'))
+    
+    return render_template('edit_agreement.html', agreement=agreement)
+
+@app.route('/delete_agreement/<int:agreement_id>')
+@super_admin_required
+def delete_agreement(agreement_id):
+    agreement = Agreement.query.get_or_404(agreement_id)
+    
+    # 删除相关的用户协议记录
+    UserAgreementRecord.query.filter_by(agreement_id=agreement_id).delete()
+    
+    db.session.delete(agreement)
+    db.session.commit()
+    
+    flash('协议删除成功')
+    return redirect(url_for('agreement_management'))
+
+@app.route('/view_agreement/<int:agreement_id>')
+def view_agreement(agreement_id):
+    agreement = Agreement.query.get_or_404(agreement_id)
+    if not agreement.is_active:
+        return jsonify({'error': '协议不可用'}), 404
+    
+    return render_template('view_agreement.html', agreement=agreement)
+
+@app.route('/api/record_agreement', methods=['POST'])
+def record_agreement():
+    """记录用户阅读协议"""
+    data = request.get_json()
+    agreement_id = data.get('agreement_id')
+    read_time = data.get('read_time', 0)
+    
+    agreement = Agreement.query.get_or_404(agreement_id)
+    
+    # 检查阅读时间是否足够
+    if read_time < agreement.min_read_time:
+        return jsonify({
+            'success': False, 
+            'message': f'需要阅读至少{agreement.min_read_time}秒',
+            'required_time': agreement.min_read_time
+        })
+    
+    # 记录协议阅读
+    client_ip = get_client_ip()
+    session_id = session.get('session_id')
+    if not session_id:
+        import uuid
+        session_id = str(uuid.uuid4())
+        session['session_id'] = session_id
+    
+    record = UserAgreementRecord(
+        user_id=session.get('user_id'),
+        agreement_id=agreement_id,
+        ip_address=client_ip,
+        read_time=read_time,
+        session_id=session_id
+    )
+    db.session.add(record)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/check_agreement/<agreement_type>')
+def check_agreement(agreement_type):
+    """检查用户是否需要阅读协议"""
+    agreement = Agreement.query.filter_by(
+        agreement_type=agreement_type, 
+        is_active=True
+    ).first()
+    
+    if not agreement:
+        return jsonify({'required': False})
+    
+    # 检查用户是否已经同意过协议
+    client_ip = get_client_ip()
+    session_id = session.get('session_id')
+    user_id = session.get('user_id')
+    
+    # 查找已有的协议记录
+    query = UserAgreementRecord.query.filter_by(agreement_id=agreement.id)
+    
+    if user_id:
+        # 登录用户：检查用户ID
+        query = query.filter_by(user_id=user_id)
+    else:
+        # 未登录用户：检查IP和session
+        query = query.filter(
+            (UserAgreementRecord.ip_address == client_ip) |
+            (UserAgreementRecord.session_id == session_id)
+        )
+    
+    existing_record = query.first()
+    
+    if existing_record:
+        return jsonify({'required': False})
+    
+    return jsonify({
+        'required': True,
+        'agreement': {
+            'id': agreement.id,
+            'title': agreement.title,
+            'content': agreement.content,
+            'min_read_time': agreement.min_read_time
+        }
+    })
+
 # 新增：导出Excel功能
 @app.route('/admin/export_excel')
 @admin_required
@@ -1258,6 +1428,72 @@ if __name__ == '__main__':
                     role=admin_data['role']
                 )
                 db.session.add(admin)
+        
+        # 创建默认协议
+        if Agreement.query.count() == 0:
+            # 用户注册协议
+            register_agreement = Agreement(
+                title="用户注册协议",
+                agreement_type="register",
+                content="""
+<h2>用户注册协议</h2>
+<p>欢迎您注册本摄影比赛平台！在使用本平台服务前，请您仔细阅读并同意以下条款：</p>
+
+<h3>1. 服务条款</h3>
+<p>本平台为摄影爱好者提供作品展示和比赛参与服务。注册即表示您同意遵守平台的所有规则和条款。</p>
+
+<h3>2. 用户义务</h3>
+<p>2.1 您需要提供真实、准确的个人信息；</p>
+<p>2.2 保护好您的账户密码，不得与他人共享；</p>
+<p>2.3 遵守法律法规，不得发布违法违规内容。</p>
+
+<h3>3. 隐私保护</h3>
+<p>我们将保护您的个人隐私，不会将您的个人信息泄露给第三方。</p>
+
+<h3>4. 免责声明</h3>
+<p>平台不对因不可抗力因素导致的服务中断承担责任。</p>
+
+<p><strong>请您仔细阅读上述条款，注册即表示您完全同意并接受本协议的所有内容。</strong></p>
+                """.strip(),
+                min_read_time=30,
+                is_active=True
+            )
+            
+            # 投稿协议
+            upload_agreement = Agreement(
+                title="作品投稿协议",
+                agreement_type="upload",
+                content="""
+<h2>摄影作品投稿协议</h2>
+<p>感谢您参与本次摄影比赛！在投稿前，请您仔细阅读并同意以下条款：</p>
+
+<h3>1. 作品要求</h3>
+<p>1.1 投稿作品必须为您本人原创摄影作品；</p>
+<p>1.2 作品内容健康向上，不得包含违法违规内容；</p>
+<p>1.3 作品格式为JPG、PNG等常见图片格式。</p>
+
+<h3>2. 版权声明</h3>
+<p>2.1 您保证拥有投稿作品的完整版权；</p>
+<p>2.2 投稿即授权平台用于比赛展示、宣传等用途；</p>
+<p>2.3 平台不会将您的作品用于商业用途。</p>
+
+<h3>3. 比赛规则</h3>
+<p>3.1 评选结果由专业评委团队评定；</p>
+<p>3.2 比赛结果公布后不接受申诉；</p>
+<p>3.3 获奖作品将获得相应奖励。</p>
+
+<h3>4. 其他条款</h3>
+<p>4.1 平台有权对违规作品进行处理；</p>
+<p>4.2 参赛者需承担作品可能引起的法律责任。</p>
+
+<p><strong>投稿即表示您完全同意并接受本协议的所有内容，祝您在比赛中取得好成绩！</strong></p>
+                """.strip(),
+                min_read_time=45,
+                is_active=True
+            )
+            
+            db.session.add(register_agreement)
+            db.session.add(upload_agreement)
         
         db.session.commit()
     app.run(debug=True)
