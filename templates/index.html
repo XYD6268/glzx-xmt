@@ -566,11 +566,11 @@
         const userHasVoted = userData.getAttribute('data-user-has-voted') === 'true';
         const userRole = parseInt(userData.getAttribute('data-user-role')) || 0;
         
-        // 检查当前用户是否为普通用户（非管理员）
-        const isNormalUser = userLoggedIn && userRole < 2;
+        // 检查当前用户是否需要限制（未登录用户或普通用户，管理员除外）
+        const shouldRestrict = !userLoggedIn || userRole < 2;
         
-        // 如果是普通用户，禁用右键和开发者工具
-        if (isNormalUser) {
+        // 如果是未登录用户或普通用户，禁用右键和开发者工具
+        if (shouldRestrict) {
             // 禁用右键菜单
             document.addEventListener('contextmenu', function(e) {
                 e.preventDefault();

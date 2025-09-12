@@ -347,7 +347,127 @@
         <img id="modal-img" src="" alt="大图预览">
     </div>
     
+    <!-- 隐藏数据元素 -->
+    <div id="user-data" 
+         data-logged-in="{% if current_user %}true{% else %}false{% endif %}"
+         data-user-role="{% if current_user %}{{ current_user.role }}{% else %}0{% endif %}"
+         style="display: none;"></div>
+    
     <script>
+        // 从隐藏元素获取用户权限状态
+        const userData = document.getElementById('user-data');
+        const userLoggedIn = userData.getAttribute('data-logged-in') === 'true';
+        const userRole = parseInt(userData.getAttribute('data-user-role')) || 0;
+        
+        // 检查当前用户是否需要限制（未登录用户或普通用户，管理员除外）
+        const shouldRestrict = !userLoggedIn || userRole < 2;
+        
+        // 如果是未登录用户或普通用户，禁用右键和开发者工具
+        if (shouldRestrict) {
+            // 禁用右键菜单
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 禁用常见的开发者工具快捷键
+            document.addEventListener('keydown', function(e) {
+                // F12
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+I (开发者工具)
+                if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+J (控制台)
+                if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+Shift+C (元素检查器)
+                if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Ctrl+U (查看源代码)
+                if (e.ctrlKey && e.key === 'u') {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // ESC键关闭弹窗（保留原有功能）
+                if (e.key === 'Escape') {
+                    hideModal();
+                }
+            });
+            
+            // 禁用文本选择
+            document.addEventListener('selectstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 禁用拖拽
+            document.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // 检测开发者工具是否打开
+            let devtools = {
+                open: false,
+                orientation: null
+            };
+            
+            const threshold = 160;
+            
+            setInterval(function() {
+                if (window.outerHeight - window.innerHeight > threshold || 
+                    window.outerWidth - window.innerWidth > threshold) {
+                    if (!devtools.open) {
+                        devtools.open = true;
+                        alert('请不要尝试查看页面源代码！');
+                        console.clear();
+                    }
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+            
+            // 监控调试器
+            function detectDebugger() {
+                try {
+                    const start = performance.now();
+                    debugger;
+                    const end = performance.now();
+                    
+                    if (end - start > 100) {
+                        console.clear();
+                        alert('请关闭开发者工具！');
+                    }
+                } catch (e) {
+                    // 忽略错误
+                }
+                
+                setTimeout(detectDebugger, 3000);
+            }
+            
+            // 延迟启动调试器检测
+            setTimeout(detectDebugger, 5000);
+            
+            // 定期清空控制台
+            setInterval(function() {
+                console.clear();
+            }, 1000);
+        }
+        
         function showModal(url) {
             const modal = document.getElementById('modal');
             const modalImg = document.getElementById('modal-img');

@@ -762,6 +762,11 @@ def rankings():
         flash('排行榜功能已关闭')
         return redirect(url_for('index'))
     
+    # 获取当前用户信息
+    current_user = None
+    if 'user_id' in session:
+        current_user = User.query.get(session['user_id'])
+    
     # 获取已通过审核的照片，按票数排序
     photos = Photo.query.filter_by(status=1).order_by(Photo.vote_count.desc()).all()
     
@@ -786,6 +791,7 @@ def rankings():
                          contest_title=settings.contest_title,
                          ranked_photos=ranked_photos,
                          total_photos=len(photos),
+                         current_user=current_user,
                          settings=settings)
 
 # 协议管理相关路由
