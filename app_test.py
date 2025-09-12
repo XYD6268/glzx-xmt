@@ -36,6 +36,7 @@ class User(db.Model):
     # 关系定义
     photos = db.relationship('Photo', backref='user', lazy=True)
     votes = db.relationship('Vote', backref='user', lazy=True)
+    login_records = db.relationship('LoginRecord', backref='user', lazy=True)
 
 class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -551,6 +552,45 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        
+        user = User.query.get(session['user_id'])
+        
+        # 验证当前密码
+        if not check_password_hash(user.password_hash, current_password):
+            flash('当前密码错误')
+            return render_template('change_password.html')
+        
+        # 验证新密码长度
+        if len(new_password) < 6:
+            flash('新密码长度至少6位')
+            return render_template('change_password.html')
+        
+        # 验证新密码确认
+        if new_password != confirm_password:
+            flash('两次输入的新密码不一致')
+            return render_template('change_password.html')
+        
+        # 检查新密码与旧密码是否相同
+        if check_password_hash(user.password_hash, new_password):
+            flash('新密码不能与当前密码相同')
+            return render_template('change_password.html')
+        
+        # 更新密码
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        
+        flash('密码修改成功')
+        return redirect(url_for('my_photos'))
+    
+    return render_template('change_password.html')
+
 @app.route('/vote', methods=['POST'])
 @login_required
 def vote():
@@ -882,6 +922,7 @@ def view_agreement(agreement_id):
     if not agreement.is_active:
         return jsonify({'error': '协议不可用'}), 404
     
+    # 传递用户信息以供防护逻辑使用
     return render_template('view_agreement.html', agreement=agreement)
 
 @app.route('/api/record_agreement', methods=['POST'])
@@ -1274,7 +1315,7 @@ def ip_management():
                          vote_analysis=vote_analysis,
                          settings=settings)
 
-@app.route('/ban_ip', methods=['POST'])
+@app.route('/ban_ip', methods=['POST'], endpoint='ban_ip')
 @admin_required
 def ban_ip_route():
     ip_address = request.form['ip_address']

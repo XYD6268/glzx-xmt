@@ -103,6 +103,12 @@
     </style>
 </head>
 <body>
+    <!-- 隐藏的用户数据元素，用于JavaScript检查用户权限 -->
+    <div id="userData" 
+         data-user-logged-in="{{ 'true' if session.get('user_id') else 'false' }}" 
+         data-user-role="{{ session.get('role', 0) }}" 
+         style="display: none;"></div>
+    
     <div class="container">
         <h2>用户注册</h2>
         <div class="info">
@@ -165,11 +171,19 @@
             });
         });
 
-        // 注册页面对所有用户（未登录）都应用防护
-        // 禁用右键菜单
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            return false;
+        // 防护功能 - 检查当前用户是否需要限制
+        const userData = document.getElementById('userData');
+        const userLoggedIn = userData.getAttribute('data-user-logged-in') === 'true';
+        const userRole = parseInt(userData.getAttribute('data-user-role')) || 0;
+        
+        // 检查当前用户是否需要限制（未登录用户或普通用户，管理员除外）
+        const shouldRestrict = !userLoggedIn || userRole < 2;
+        
+        if (shouldRestrict) {
+            // 禁用右键菜单
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
         });
         
         // 禁用常见的开发者工具快捷键
@@ -259,10 +273,11 @@
         // 延迟启动调试器检测
         setTimeout(detectDebugger, 5000);
         
-        // 定期清空控制台
-        setInterval(function() {
-            console.clear();
-        }, 1000);
+            // 定期清空控制台
+            setInterval(function() {
+                console.clear();
+            }, 1000);
+        }
     </script>
 </body>
 </html>

@@ -455,6 +455,7 @@
                     {% if show_rankings %}
                         <a href="{{ url_for('rankings') }}">票数排行榜</a>
                     {% endif %}
+                    <a href="{{ url_for('change_password') }}">修改密码</a>
                     {% if current_user.role >= 2 %}
                         <a href="{{ url_for('admin') }}">管理面板</a>
                     {% endif %}
