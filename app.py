@@ -1230,17 +1230,13 @@ def settings():
     return render_template('settings.html', settings=settings)
 
 # 安全的文件访问路由 - 保护uploads和thumbs目录
-@app.route('/watermarked_image/<int:photo_id>')
-def get_watermarked_image(photo_id):
-    """获取带水印的图片"""
-    if not session.get('user_id'):
-        return '', 404
-    
+@app.route('/image/<int:photo_id>')
+def get_image(photo_id):
+    """获取带水印的原图 - 允许未登录用户访问"""
     photo = Photo.query.get_or_404(photo_id)
-    current_user = User.query.get(session['user_id'])
     
-    # 检查权限：只有登录用户可以查看已审核通过的照片
-    if photo.status != 1:  # 只能查看已审核通过的照片
+    # 只能查看已审核通过的照片
+    if photo.status != 1:
         return '', 404
     
     try:
@@ -1274,16 +1270,13 @@ def get_watermarked_image(photo_id):
         print(f"获取水印图片失败: {e}")
         return '', 500
 
-@app.route('/watermarked_thumb/<int:photo_id>')
-def get_watermarked_thumb(photo_id):
-    """获取带水印的缩略图"""
-    if not session.get('user_id'):
-        return '', 404
-    
+@app.route('/thumb/<int:photo_id>')
+def get_thumb(photo_id):
+    """获取不带水印的缩略图 - 允许未登录用户访问"""
     photo = Photo.query.get_or_404(photo_id)
     
-    # 检查权限：只有登录用户可以查看已审核通过的照片
-    if photo.status != 1:  # 只能查看已审核通过的照片
+    # 只能查看已审核通过的照片
+    if photo.status != 1:
         return '', 404
     
     try:
@@ -1293,28 +1286,11 @@ def get_watermarked_thumb(photo_id):
         if not os.path.exists(thumb_path):
             return '', 404
         
-        # 生成带水印的缩略图
-        watermarked_path = add_watermark_to_image(thumb_path, photo_id)
-        
-        def cleanup_temp_file():
-            try:
-                if watermarked_path != thumb_path and os.path.exists(watermarked_path):
-                    os.remove(watermarked_path)
-                    # 也删除临时目录（如果为空）
-                    temp_dir = os.path.dirname(watermarked_path)
-                    try:
-                        os.rmdir(temp_dir)
-                    except:
-                        pass
-            except:
-                pass
-        
-        response = send_file(watermarked_path, mimetype='image/jpeg')
-        response.call_on_close(cleanup_temp_file)
-        return response
+        # 直接返回缩略图，不添加水印
+        return send_file(thumb_path, mimetype='image/jpeg')
         
     except Exception as e:
-        print(f"获取水印缩略图失败: {e}")
+        print(f"获取缩略图失败: {e}")
         return '', 500
 
 @app.route('/static/uploads/<path:filename>')
