@@ -13,13 +13,34 @@ from datetime import datetime
 from functools import wraps
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://user:password@localhost/glzx_xmt?charset=utf8mb4'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['THUMB_FOLDER'] = 'static/thumbs'
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+
+# 从环境变量读取配置，提供安全默认值（保留原有 MySQL 默认以避免行为变化）
+
+def _getenv_bool(name: str, default: bool) -> bool:
+    v = os.environ.get(name)
+    if v is None:
+        return default
+    return str(v).strip().lower() in ("1", "true", "yes", "on")
+
+# 若提供完整的 DATABASE_URL 则优先使用；否则按片段拼接 MySQL 连接串
+# 片段变量：DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    db_user = os.environ.get('DB_USER', 'user')
+    db_password = os.environ.get('DB_PASSWORD', 'password')
+    db_host = os.environ.get('DB_HOST', 'localhost')
+    db_port = os.environ.get('DB_PORT', '3306')
+    db_name = os.environ.get('DB_NAME', 'glzx_xmt')
+    DATABASE_URL = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = _getenv_bool('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
+app.config['THUMB_FOLDER'] = os.environ.get('THUMB_FOLDER', 'static/thumbs')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 # 禁用默认静态文件路由中的uploads目录访问
 app.static_folder = 'static'
+
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -1850,7 +1871,7 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         
-        # 创建预制管理员账号
+        # 创建预制管理员账号（仅在不存在时创建）
         admin_accounts = [
             {
                 'real_name': '冯怀智',
@@ -1858,10 +1879,9 @@ if __name__ == '__main__':
                 'qq_number': '2069528060',
                 'password': 'admin123',
                 'class_name': '管理组',
-                'role': 3  # 系统管理员
+                'role': 3
             }
         ]
-        
         for admin_data in admin_accounts:
             if not User.query.filter_by(real_name=admin_data['real_name']).first():
                 admin = User(
@@ -1873,74 +1893,10 @@ if __name__ == '__main__':
                     role=admin_data['role']
                 )
                 db.session.add(admin)
-        
-        # 创建默认协议
-        if Agreement.query.count() == 0:
-            # 用户注册协议
-            register_agreement = Agreement(
-                title="用户注册协议",
-                agreement_type="register",
-                content="""
-<h2>用户注册协议</h2>
-<p>欢迎您注册本摄影比赛平台！在使用本平台服务前，请您仔细阅读并同意以下条款：</p>
-
-<h3>1. 服务条款</h3>
-<p>本平台为摄影爱好者提供作品展示和比赛参与服务。注册即表示您同意遵守平台的所有规则和条款。</p>
-
-<h3>2. 用户义务</h3>
-<p>2.1 您需要提供真实、准确的个人信息；</p>
-<p>2.2 保护好您的账户密码，不得与他人共享；</p>
-<p>2.3 遵守法律法规，不得发布违法违规内容。</p>
-
-<h3>3. 隐私保护</h3>
-<p>我们将保护您的个人隐私，不会将您的个人信息泄露给第三方。</p>
-
-<h3>4. 免责声明</h3>
-<p>平台不对因不可抗力因素导致的服务中断承担责任。</p>
-
-<p><strong>请您仔细阅读上述条款，注册即表示您完全同意并接受本协议的所有内容。</strong></p>
-                """.strip(),
-                min_read_time=30,
-                is_active=True
-            )
-            
-            # 投稿协议
-            upload_agreement = Agreement(
-                title="作品投稿协议",
-                agreement_type="upload",
-                content="""
-<h2>摄影作品投稿协议</h2>
-<p>感谢您参与本次摄影比赛！在投稿前，请您仔细阅读并同意以下条款：</p>
-
-<h3>1. 作品要求</h3>
-<p>1.1 投稿作品必须为您本人原创摄影作品；</p>
-<p>1.2 作品内容健康向上，不得包含违法违规内容；</p>
-<p>1.3 作品格式为JPG、PNG等常见图片格式。</p>
-
-<h3>2. 版权声明</h3>
-<p>2.1 您保证拥有投稿作品的完整版权；</p>
-<p>2.2 投稿即授权平台用于比赛展示、宣传等用途；</p>
-<p>2.3 平台不会将您的作品用于商业用途。</p>
-
-<h3>3. 比赛规则</h3>
-<p>3.1 评选结果由专业评委团队评定；</p>
-<p>3.2 比赛结果公布后不接受申诉；</p>
-<p>3.3 获奖作品将获得相应奖励。</p>
-
-<h3>4. 其他条款</h3>
-<p>4.1 平台有权对违规作品进行处理；</p>
-<p>4.2 参赛者需承担作品可能引起的法律责任。</p>
-
-<p><strong>投稿即表示您完全同意并接受本协议的所有内容，祝您在比赛中取得好成绩！</strong></p>
-                """.strip(),
-                min_read_time=45,
-                is_active=True
-            )
-            
-            db.session.add(register_agreement)
-            db.session.add(upload_agreement)
-        
         db.session.commit()
-        print("数据库初始化完成")
-    print("启动Flask应用程序...")
-    app.run(debug=True)
+    
+    # 运行参数从环境读取
+    debug = _getenv_bool('FLASK_DEBUG', True)
+    host = os.environ.get('FLASK_RUN_HOST', '127.0.0.1')
+    port = int(os.environ.get('FLASK_RUN_PORT', '5000'))
+    app.run(host=host, port=port, debug=debug)
