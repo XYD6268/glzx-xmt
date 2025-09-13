@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  app:
+    image: glzx-mecpc
+    build: .
+    container_name: glzx-mecpc
+    ports:
+      - "5000:5000"
+    environment:
+      # 可在此直接填写环境变量，或使用 .env 文件
+      SECRET_KEY: "your-secret-key"
+      DATABASE_URL: "mysql+pymysql://user:password@dbhost:3306/glzx_xmt?charset=utf8mb4"
+    # --- 路径配置 ---
+    # 持久化上传和缩略图目录，防止容器重启丢失
+    volumes:
+      - ./instance:/app/instance
+      - ./static/uploads:/app/static/uploads
+      - ./static/thumbs:/app/static/thumbs
+    restart: unless-stopped
+    # 如有 .env 文件可自动加载
+    env_file:
+      - .env
