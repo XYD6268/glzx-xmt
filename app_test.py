@@ -122,6 +122,23 @@ class UserAgreementRecord(db.Model):
     agreed_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     session_id = db.Column(db.String(100), nullable=True)  # 会话ID，用于注册前的协议记录
 
+class IpWhitelist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False, unique=True)
+    description = db.Column(db.String(200), nullable=True)  # 添加原因或说明
+    created_by = db.Column(db.String(50), nullable=False)  # 添加人
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+class UserWhitelist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    description = db.Column(db.String(200), nullable=True)  # 添加原因或说明
+    created_by = db.Column(db.String(50), nullable=False)  # 添加人
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    # 关系定义
+    user = db.relationship('User', backref='whitelist_record')
+
 # 权限装饰器
 def login_required(f):
     @wraps(f)
@@ -329,6 +346,16 @@ def get_client_ip():
     else:
         return request.environ.get('REMOTE_ADDR', '127.0.0.1')
 
+def check_ip_whitelist(ip_address):
+    """检查IP是否在白名单中"""
+    whitelist_record = IpWhitelist.query.filter_by(ip_address=ip_address).first()
+    return whitelist_record is not None
+
+def check_user_whitelist(user_id):
+    """检查用户是否在白名单中"""
+    whitelist_record = UserWhitelist.query.filter_by(user_id=user_id).first()
+    return whitelist_record is not None
+
 def check_ip_ban(ip_address):
     """检查IP是否被封禁"""
     ban_record = IpBanRecord.query.filter_by(ip_address=ip_address, is_active=True).first()
@@ -352,6 +379,10 @@ def check_vote_frequency(ip_address):
     if not settings.risk_control_enabled:
         return False, ""
     
+    # 检查IP是否在白名单中
+    if check_ip_whitelist(ip_address):
+        return False, ""
+    
     from datetime import datetime, timedelta
     time_threshold = datetime.now() - timedelta(minutes=settings.vote_time_window)
     
@@ -370,6 +401,14 @@ def check_login_frequency(ip_address, user_id):
     """检查IP登录账号数量是否超限"""
     settings = get_settings()
     if not settings.risk_control_enabled:
+        return False, ""
+    
+    # 检查IP是否在白名单中
+    if check_ip_whitelist(ip_address):
+        return False, ""
+    
+    # 检查用户是否在白名单中
+    if check_user_whitelist(user_id):
         return False, ""
     
     from datetime import datetime, timedelta
@@ -401,7 +440,7 @@ def auto_ban_users_by_ip(ip_address, reason):
     
     banned_users = []
     for user in related_users:
-        if user.is_active:
+        if user.is_active and not check_user_whitelist(user.id):  # 排除白名单用户
             user.is_active = False
             banned_users.append(user.real_name)
     
@@ -1342,6 +1381,121 @@ def unban_ip(ip_id):
     
     flash(f'IP {ban_record.ip_address} 已解封')
     return redirect(url_for('ip_management'))
+
+# 白名单管理路由
+@app.route('/whitelist_management')
+@admin_required
+def whitelist_management():
+    # 获取IP白名单
+    ip_whitelists = IpWhitelist.query.order_by(IpWhitelist.created_at.desc()).all()
+    
+    # 获取用户白名单
+    user_whitelists = UserWhitelist.query.join(User).order_by(UserWhitelist.created_at.desc()).all()
+    
+    # 统计信息
+    ip_whitelist_count = len(ip_whitelists)
+    user_whitelist_count = len(user_whitelists)
+    
+    settings = get_settings()
+    
+    return render_template('whitelist_management.html',
+                         ip_whitelists=ip_whitelists,
+                         user_whitelists=user_whitelists,
+                         ip_whitelist_count=ip_whitelist_count,
+                         user_whitelist_count=user_whitelist_count,
+                         settings=settings)
+
+@app.route('/add_ip_whitelist', methods=['POST'])
+@admin_required
+def add_ip_whitelist():
+    ip_address = request.form['ip_address'].strip()
+    description = request.form.get('description', '').strip()
+    
+    # 验证IP地址格式
+    import ipaddress
+    try:
+        ipaddress.ip_address(ip_address)
+    except ValueError:
+        flash('无效的IP地址格式')
+        return redirect(url_for('whitelist_management'))
+    
+    # 检查IP是否已在白名单中
+    existing = IpWhitelist.query.filter_by(ip_address=ip_address).first()
+    if existing:
+        flash(f'IP {ip_address} 已在白名单中')
+        return redirect(url_for('whitelist_management'))
+    
+    # 获取当前用户信息
+    current_user = User.query.get(session['user_id'])
+    
+    # 添加到白名单
+    whitelist_item = IpWhitelist(
+        ip_address=ip_address,
+        description=description,
+        created_by=current_user.real_name
+    )
+    db.session.add(whitelist_item)
+    db.session.commit()
+    
+    flash(f'IP {ip_address} 已添加到白名单')
+    return redirect(url_for('whitelist_management'))
+
+@app.route('/remove_ip_whitelist/<int:whitelist_id>', methods=['POST'])
+@admin_required
+def remove_ip_whitelist(whitelist_id):
+    whitelist_item = IpWhitelist.query.get_or_404(whitelist_id)
+    ip_address = whitelist_item.ip_address
+    
+    db.session.delete(whitelist_item)
+    db.session.commit()
+    
+    flash(f'IP {ip_address} 已从白名单中移除')
+    return redirect(url_for('whitelist_management'))
+
+@app.route('/add_user_whitelist', methods=['POST'])
+@admin_required
+def add_user_whitelist():
+    user_id = request.form['user_id']
+    description = request.form.get('description', '').strip()
+    
+    # 检查用户是否存在
+    user = User.query.get(user_id)
+    if not user:
+        flash('用户不存在')
+        return redirect(url_for('whitelist_management'))
+    
+    # 检查用户是否已在白名单中
+    existing = UserWhitelist.query.filter_by(user_id=user_id).first()
+    if existing:
+        flash(f'用户 {user.real_name} 已在白名单中')
+        return redirect(url_for('whitelist_management'))
+    
+    # 获取当前用户信息
+    current_user = User.query.get(session['user_id'])
+    
+    # 添加到白名单
+    whitelist_item = UserWhitelist(
+        user_id=user_id,
+        description=description,
+        created_by=current_user.real_name
+    )
+    db.session.add(whitelist_item)
+    db.session.commit()
+    
+    flash(f'用户 {user.real_name} 已添加到白名单')
+    return redirect(url_for('whitelist_management'))
+
+@app.route('/remove_user_whitelist/<int:whitelist_id>', methods=['POST'])
+@admin_required
+def remove_user_whitelist(whitelist_id):
+    whitelist_item = UserWhitelist.query.get_or_404(whitelist_id)
+    user_name = whitelist_item.user.real_name
+    
+    db.session.delete(whitelist_item)
+    db.session.commit()
+    
+    flash(f'用户 {user_name} 已从白名单中移除')
+    return redirect(url_for('whitelist_management'))
 
 # 新增：导出Excel功能
 @app.route('/admin/export_excel')
