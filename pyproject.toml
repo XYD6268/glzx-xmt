@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "glzx-xmt"
+version = "1.0.0"
+description = "基于Flask的摄影比赛投票系统，支持三级用户权限管理、照片审核、投票"
+readme = "README.md"
+license = {text = "GPLv3"}
+authors = [
+    {name = "Project Author", email = "author@example.com"}
+]
+requires-python = ">=3.13"
+dependencies = [
+    "Flask[async,dotenv]",
+    "python-dotenv",
+    "Flask-SQLAlchemy",
+    "SQLAlchemy[asyncio,mypy,postgresql-asyncpg]",
+    "asyncpg",
+    "Flask-Caching",
+    "redis[hiredis]",
+    "celery",
+    "Pillow",
+    "orjson",
+    "Flask-WTF",
+    "Werkzeug",
+    "gunicorn[gevent]",
+    "gevent[events]",
+    "pandas[performance]",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+]
+production = [
+    "sentry-sdk[celery,flask,http2]",
+    "prometheus-flask-exporter",
+    "structlog",
+    "flask-talisman",
+    "flask-compress"
+]
+high-performance = [
+    "Pillow-SIMD; platform_system!='Windows'",
+    "Pillow; platform_system=='Windows'"
+]
+
+[project.urls]
+Homepage = "https://github.com/example/glzx-xmt"
+Repository = "https://github.com/example/glzx-xmt.git"
+"Bug Tracker" = "https://github.com/example/glzx-xmt/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src", "static", "templates"]

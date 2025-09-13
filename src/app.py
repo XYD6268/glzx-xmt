@@ -12,7 +12,9 @@ from io import BytesIO
 from datetime import datetime
 from functools import wraps
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            template_folder='../templates',
+            static_folder='../static')
 
 # 从环境变量读取配置，提供安全默认值（保留原有 MySQL 默认以避免行为变化）
 

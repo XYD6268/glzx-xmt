@@ -12,14 +12,16 @@ from io import BytesIO
 from datetime import datetime
 from functools import wraps
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            template_folder='../templates',
+            static_folder='../static')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///photos.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['THUMB_FOLDER'] = 'static/thumbs'
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 # 禁用默认静态文件路由中的uploads目录访问
-app.static_folder = 'static'
+app.static_folder = '../static'
 db = SQLAlchemy(app)
 
 class User(db.Model):
