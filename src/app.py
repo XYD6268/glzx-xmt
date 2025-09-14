@@ -285,21 +285,21 @@ def add_watermark_to_image(image_path, photo_id):
             try:
                 if os.path.exists(font_path):
                     font = ImageFont.truetype(font_path, settings.watermark_font_size)
-                    print(f"成功加载字体: {font_path}")
+                    # 字体加载成功
                     break
             except Exception as e:
-                print(f"加载字体失败 {font_path}: {e}")
+                # 字体加载失败，尝试下一个
                 continue
         
         # 如果所有字体都加载失败，使用默认字体
         if font is None:
             try:
                 font = ImageFont.load_default()
-                print("使用默认字体")
+                # 使用默认字体
             except:
                 # 最后的备选方案，创建一个简单的字体
                 font = ImageFont.load_default()
-                print("使用系统默认字体")
+                # 使用系统默认字体
         
         # 获取文本尺寸
         bbox = draw.textbbox((0, 0), watermark_text, font=font)
@@ -338,7 +338,7 @@ def add_watermark_to_image(image_path, photo_id):
         return temp_path
         
     except Exception as e:
-        print(f"水印添加失败: {e}")
+        # 水印添加失败，返回原图
         return image_path
 
 def is_voting_time():
@@ -1759,7 +1759,7 @@ def get_image(photo_id):
         return response
         
     except Exception as e:
-        print(f"获取水印图片失败: {e}")
+        # 获取水印图片失败
         return '', 500
 
 @app.route('/thumb/<int:photo_id>')
@@ -1782,7 +1782,7 @@ def get_thumb(photo_id):
         return send_file(thumb_path, mimetype='image/jpeg')
         
     except Exception as e:
-        print(f"获取缩略图失败: {e}")
+        # 获取缩略图失败
         return '', 500
 
 @app.route('/static/uploads/<path:filename>')
