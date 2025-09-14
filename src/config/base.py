@@ -54,8 +54,8 @@ class BaseConfig:
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', REDIS_URL)
     
     # 文件上传配置
-    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
-    THUMB_FOLDER = os.environ.get('THUMB_FOLDER', 'static/thumbs') 
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'photo/uploads')
+    THUMB_FOLDER = os.environ.get('THUMB_FOLDER', 'photo/thumbs') 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
     
     # 性能优化配置
@@ -72,8 +72,8 @@ class BaseConfig:
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # 图片处理配置
-    IMAGE_QUALITY = 85
-    THUMBNAIL_SIZE = (180, 120)
+    IMAGE_QUALITY = 100
+    THUMBNAIL_SIZE = (300, 200)
     WATERMARK_ENABLED = _getenv_bool('WATERMARK_ENABLED', True)
 
 

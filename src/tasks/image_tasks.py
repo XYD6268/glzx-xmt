@@ -13,8 +13,8 @@ import uuid
 logger = logging.getLogger(__name__)
 
 
-@celery.task(bind=True, name='tasks.image_tasks.process_image')
-def process_image(self, photo_id):
+@celery.task(bind=True)
+def process_image(self, photo_id: str):
     """
     异步处理图片 - 生成缩略图和水印
     """
@@ -23,58 +23,71 @@ def process_image(self, photo_id):
         if not photo:
             logger.error(f"照片不存在: {photo_id}")
             return False
-        
-        original_path = photo.url.lstrip('/')
-        
-        if not os.path.exists(original_path):
-            logger.error(f"原始文件不存在: {original_path}")
-            return False
-        
-        success = True
-        
+
         # 生成缩略图
-        thumb_result = create_thumbnail_task(original_path)
+        thumb_result = create_thumbnail_task(photo_id)
         if thumb_result:
-            photo.thumb_url = f'/static/thumbs/{thumb_result}'
+            photo.thumb_url = f'/photo/thumbs/{thumb_result}'
         else:
             success = False
-        
+
         # 添加水印
         settings = Settings.get_current()
-        if settings and settings.watermark_enabled:
-            watermark_result = add_watermark_task(
-                original_path, 
-                photo.student_name, 
-                photo.class_name,
-                settings
+        if settings and settings.watermark_enabled and photo.student_name and photo.class_name:
+            watermark_result = add_watermark(
+                photo.url[1:],  # 去掉开头的 '/'
+                f"{photo.student_name} {photo.class_name}",
+                'photo/uploads',  # 更新存储路径
+                settings.watermark_position,
+                settings.watermark_opacity,
+                settings.watermark_font_size,
+                settings.watermark_color
             )
             if watermark_result:
-                photo.url = f'/static/uploads/{watermark_result}'
+                photo.url = f'/photo/uploads/{watermark_result}'
             else:
                 success = False
-        
+
         # 更新数据库
         db.session.commit()
-        
+
         logger.info(f"图片处理完成: {photo_id}")
-        return success
-        
+        return True
+
     except Exception as e:
-        logger.error(f"图片处理失败 {photo_id}: {e}")
+        logger.error(f"处理图片失败: {e}")
         db.session.rollback()
-        
-        # 重试机制
-        if self.request.retries < 3:
-            raise self.retry(countdown=60 * (self.request.retries + 1))
-        
-        return False
+        raise self.retry(exc=e, countdown=60, max_retries=3)
 
 
-def create_thumbnail_task(original_path, size=(180, 120), quality=85):
+@celery.task
+def create_thumbnail_task(photo_id: str) -> Optional[str]:
+    """
+    创建缩略图任务
+    """
+    try:
+        photo = Photo.get_by_id(photo_id)
+        if not photo:
+            logger.error(f"照片不存在: {photo_id}")
+            return None
+
+        # 生成缩略图
+        thumb_filename = create_thumbnail(photo.url[1:])  # 去掉开头的 '/'
+        if thumb_filename:
+            return thumb_filename
+        else:
+            return None
+
+    except Exception as e:
+        logger.error(f"创建缩略图失败: {e}")
+        return None
+
+
+def create_thumbnail(original_path, size=(180, 120), quality=100):
     """创建缩略图"""
     try:
         # 确保缩略图目录存在
-        thumb_dir = 'static/thumbs'
+        thumb_dir = 'photo/thumbs'
         os.makedirs(thumb_dir, exist_ok=True)
         
         # 打开原图
@@ -90,7 +103,7 @@ def create_thumbnail_task(original_path, size=(180, 120), quality=85):
             filename = f"thumb_{uuid.uuid4().hex}.jpg"
             thumb_path = os.path.join(thumb_dir, filename)
             
-            # 保存缩略图
+            # 保存缩略图，使用最高质量
             img.save(thumb_path, 'JPEG', quality=quality, optimize=True)
             
             logger.info(f"缩略图生成成功: {thumb_path}")
@@ -150,10 +163,10 @@ def add_watermark_task(original_path, student_name, class_name, settings):
             
             # 生成新文件名
             filename = f"watermarked_{uuid.uuid4().hex}.jpg"
-            watermarked_path = os.path.join('static/uploads', filename)
+            watermarked_path = os.path.join('photo/uploads', filename)
             
             # 保存带水印的图片
-            watermarked.save(watermarked_path, 'JPEG', quality=90, optimize=True)
+            watermarked.save(watermarked_path, 'JPEG', quality=100, optimize=True)
             
             logger.info(f"水印添加成功: {watermarked_path}")
             return filename
@@ -165,20 +178,14 @@ def add_watermark_task(original_path, student_name, class_name, settings):
 
 def get_watermark_font(font_size):
     """获取水印字体"""
-    font_paths = [
-        '/System/Library/Fonts/STHeiti Light.ttc',  # macOS
-        'C:/Windows/Fonts/msyh.ttc',  # Windows
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',  # Linux
-        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'
-    ]
+    # 只使用项目内置的鸿蒙字体以提高性能
+    font_path = 'static/fonts/HarmonyOS_Sans_SC_Regular.ttf'
     
-    # 尝试加载系统字体
-    for font_path in font_paths:
-        try:
-            if os.path.exists(font_path):
-                return ImageFont.truetype(font_path, font_size)
-        except Exception:
-            continue
+    try:
+        if os.path.exists(font_path):
+            return ImageFont.truetype(font_path, font_size)
+    except Exception:
+        pass
     
     # 降级到默认字体
     try:
@@ -296,7 +303,7 @@ def optimize_images():
         return 0
 
 
-def optimize_single_image(image_path, max_width=1920, quality=85):
+def optimize_single_image(image_path, max_width=3840, quality=100):
     """优化单张图片"""
     try:
         with Image.open(image_path) as img:

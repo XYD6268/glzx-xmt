@@ -50,7 +50,7 @@ class PhotoService:
             
             # 6. 创建数据库记录
             photo = Photo(
-                url=f'/static/uploads/{filename}',
+                url=f'/photo/uploads/{filename}',
                 title=title or f'作品_{uuid.uuid4().hex[:8]}',
                 class_name=user.class_name,
                 student_name=user.real_name,
@@ -90,7 +90,7 @@ class PhotoService:
             filename = secure_filename(file.filename)
             unique_filename = f"{uuid.uuid4().hex}_{filename}"
             
-            upload_path = os.path.join('static/uploads', unique_filename)
+            upload_path = os.path.join('photo/uploads', unique_filename)
             os.makedirs(os.path.dirname(upload_path), exist_ok=True)
             file.save(upload_path)
             
@@ -125,14 +125,14 @@ class PhotoService:
             # 生成缩略图
             thumb_filename = create_thumbnail(original_path)
             if thumb_filename:
-                photo.thumb_url = f'/static/thumbs/{thumb_filename}'
+                photo.thumb_url = f'/photo/thumbs/{thumb_filename}'
             
             # 添加水印
             settings = Settings.get_current()
             if settings.watermark_enabled:
                 watermark_filename = add_watermark(original_path, photo.student_name, photo.class_name)
                 if watermark_filename:
-                    photo.url = f'/static/uploads/{watermark_filename}'
+                    photo.url = f'/photo/uploads/{watermark_filename}'
             
             db.session.commit()
             

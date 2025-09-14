@@ -18,9 +18,9 @@ class ImageProcessor:
     SUPPORTED_FORMATS = {'JPEG', 'PNG', 'GIF', 'BMP', 'WEBP'}
     
     # 默认配置
-    DEFAULT_THUMBNAIL_SIZE = (180, 120)
-    DEFAULT_MAX_SIZE = (1920, 1080)
-    DEFAULT_QUALITY = 85
+    DEFAULT_THUMBNAIL_SIZE = (300, 200)
+    DEFAULT_MAX_SIZE = (3840, 2160)
+    DEFAULT_QUALITY = 100
     
     @staticmethod
     def validate_image(file_path: str) -> bool:
@@ -50,52 +50,54 @@ class ImageProcessor:
             return {}
     
     @staticmethod
-    def create_thumbnail(input_path: str, output_dir: str = 'static/thumbs', 
-                        size: Tuple[int, int] = None, quality: int = None) -> Optional[str]:
+    def create_thumbnail(input_path: str, size: Tuple[int, int] = (180, 120), 
+                        output_dir: str = 'photo/thumbs', quality: int = 100) -> Optional[str]:
         """
-        创建高质量缩略图
+        创建缩略图
         
         Args:
             input_path: 输入图片路径
-            output_dir: 输出目录
-            size: 缩略图尺寸
-            quality: 图片质量
+            size: 缩略图尺寸 (宽, 高)，默认(180, 120)
+            output_dir: 输出目录，默认为photo/thumbs
+            quality: 图片保存质量，默认100 (最高质量)
             
         Returns:
-            缩略图文件名或None
+            str: 缩略图文件名，失败时返回None
         """
         try:
-            if size is None:
-                size = ImageProcessor.DEFAULT_THUMBNAIL_SIZE
-            if quality is None:
-                quality = ImageProcessor.DEFAULT_QUALITY
-            
             # 确保输出目录存在
             os.makedirs(output_dir, exist_ok=True)
             
+            # 生成缩略图文件名
+            filename = os.path.basename(input_path)
+            name, ext = os.path.splitext(filename)
+            thumb_filename = f"{name}_thumb{ext}"
+            thumb_path = os.path.join(output_dir, thumb_filename)
+            
+            # 打开并处理图片
             with Image.open(input_path) as img:
-                # 转换为RGB模式
-                if img.mode not in ('RGB', 'L'):
+                # 转换为RGB模式（如果需要）
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    # 如果原图有透明通道，使用白色背景
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                    img = background
+                elif img.mode != 'RGB':
                     img = img.convert('RGB')
                 
-                # 使用高质量重采样算法
+                # 生成缩略图
                 img.thumbnail(size, Image.Resampling.LANCZOS)
                 
-                # 生成输出文件名
-                filename = f"thumb_{uuid.uuid4().hex}.jpg"
-                output_path = os.path.join(output_dir, filename)
-                
-                # 保存缩略图，启用优化
-                img.save(output_path, 'JPEG', 
-                        quality=quality, 
-                        optimize=True,
-                        progressive=True)
-                
-                logger.info(f"缩略图创建成功: {output_path}")
-                return filename
-                
+                # 保存缩略图
+                img.save(thumb_path, 'JPEG', quality=quality, optimize=True)
+            
+            logger.info(f"缩略图创建成功: {thumb_path}")
+            return thumb_filename
+            
         except Exception as e:
-            logger.error(f"创建缩略图失败 {input_path}: {e}")
+            logger.error(f"创建缩略图失败: {e}")
             return None
     
     @staticmethod
@@ -142,7 +144,7 @@ class ImageProcessor:
             return None
     
     @staticmethod
-    def optimize_image(input_path: str, output_path: str = None, quality: int = 85) -> bool:
+    def optimize_image(input_path: str, output_path: str = None, quality: int = 100) -> bool:
         """优化图片文件大小"""
         try:
             if output_path is None:
@@ -167,145 +169,101 @@ class ImageProcessor:
 
 
 class WatermarkProcessor:
-    """高性能水印处理器"""
-    
-    # 水印位置枚举
-    POSITIONS = {
-        'top_left': 'TL',
-        'top_right': 'TR', 
-        'bottom_left': 'BL',
-        'bottom_right': 'BR',
-        'center': 'C'
-    }
-    
     @staticmethod
-    def add_watermark(input_path: str, watermark_text: str, 
-                     output_dir: str = 'static/uploads',
+    def add_watermark(input_path: str, watermark_text: str,
+                     output_dir: str = 'photo/uploads',
                      position: str = 'bottom_right',
                      opacity: float = 0.3,
                      font_size: int = 20,
                      font_color: Tuple[int, int, int, int] = None) -> Optional[str]:
         """
         添加高质量水印
-        
-        Args:
-            input_path: 输入图片路径
-            watermark_text: 水印文本
-            output_dir: 输出目录
-            position: 水印位置
-            opacity: 透明度 (0.0-1.0)
-            font_size: 字体大小
-            font_color: 字体颜色 (R, G, B, A)
-            
-        Returns:
-            输出文件名或None
         """
         try:
-            if font_color is None:
-                font_color = (255, 255, 255, int(255 * opacity))
-            
-            # 确保输出目录存在
-            os.makedirs(output_dir, exist_ok=True)
-            
+            # 打开原始图片
             with Image.open(input_path) as img:
-                # 转换为RGBA模式支持透明度
-                if img.mode != 'RGBA':
-                    img = img.convert('RGBA')
+                # 确保图片是RGB模式
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
                 
-                # 创建水印层
-                watermark_layer = Image.new('RGBA', img.size, (0, 0, 0, 0))
-                draw = ImageDraw.Draw(watermark_layer)
+                # 创建水印图层
+                watermark = Image.new('RGBA', img.size, (0, 0, 0, 0))
+                draw = ImageDraw.Draw(watermark)
                 
-                # 获取字体
-                font = WatermarkProcessor._get_font(font_size)
+                # 使用默认字体或系统字体
+                def _get_font(font_size: int):
+                    """获取字体"""
+                    # 只使用项目内置的鸿蒙字体以提高性能
+                    font_path = 'static/fonts/HarmonyOS_Sans_SC_Regular.ttf'
+                    
+                    try:
+                        if os.path.exists(font_path):
+                            return ImageFont.truetype(font_path, font_size)
+                    except Exception:
+                        pass
+                    
+                    # 使用默认字体
+                    try:
+                        return ImageFont.load_default()
+                    except Exception:
+                        return ImageFont.load_default()
                 
-                # 计算文本尺寸
+                font = _get_font(font_size)
+                
+                # 计算水印文本尺寸
                 bbox = draw.textbbox((0, 0), watermark_text, font=font)
                 text_width = bbox[2] - bbox[0]
                 text_height = bbox[3] - bbox[1]
                 
+                # 创建水印文本
+                text_layer = Image.new('RGBA', (text_width, text_height), (0, 0, 0, 0))
+                text_draw = ImageDraw.Draw(text_layer)
+                
+                # 使用默认的白色字体颜色
+                if font_color is None:
+                    font_color = (255, 255, 255, int(255 * opacity))
+                
+                text_draw.text((0, 0), watermark_text, font=font, fill=font_color)
+                
+                # 旋转水印文本（可选）
+                # text_layer = text_layer.rotate(30, expand=1)
+                
                 # 计算水印位置
-                x, y = WatermarkProcessor._calculate_position(
-                    img.size, text_width, text_height, position
-                )
+                margin = 20
+                if position == 'top_left':
+                    x, y = margin, margin
+                elif position == 'top_right':
+                    x, y = img.width - text_width - margin, margin
+                elif position == 'bottom_left':
+                    x, y = margin, img.height - text_height - margin
+                elif position == 'center':
+                    x, y = (img.width - text_width) // 2, (img.height - text_height) // 2
+                else:  # bottom_right
+                    x, y = img.width - text_width - margin, img.height - text_height - margin
                 
-                # 绘制文本阴影（增强可读性）
-                shadow_color = (0, 0, 0, int(255 * opacity * 0.8))
-                draw.text((x + 2, y + 2), watermark_text, font=font, fill=shadow_color)
+                # 将水印应用到图层上
+                watermark.paste(text_layer, (x, y), text_layer)
                 
-                # 绘制主文本
-                draw.text((x, y), watermark_text, font=font, fill=font_color)
+                # 将水印合并到原图
+                watermarked = Image.alpha_composite(img.convert('RGBA'), watermark)
                 
-                # 合并图层
-                watermarked = Image.alpha_composite(img, watermark_layer)
-                
-                # 转换回RGB模式
-                watermarked = watermarked.convert('RGB')
-                
-                # 生成输出文件名
+                # 生成唯一的文件名
                 filename = f"watermarked_{uuid.uuid4().hex}.jpg"
-                output_path = os.path.join(output_dir, filename)
+                watermarked_path = os.path.join(output_dir, filename)
                 
-                # 保存带水印的图片
-                watermarked.save(output_path, 'JPEG', 
-                               quality=90, 
-                               optimize=True)
+                # 确保输出目录存在
+                os.makedirs(output_dir, exist_ok=True)
                 
-                logger.info(f"水印添加成功: {output_path}")
+                # 保存带水印的图片，使用最高质量
+                watermarked.convert('RGB').save(watermarked_path, 'JPEG', quality=100, optimize=True)
+                
+                logger.info(f"水印添加成功: {watermarked_path}")
+                
                 return filename
                 
         except Exception as e:
-            logger.error(f"添加水印失败 {input_path}: {e}")
+            logger.error(f"添加水印失败: {e}")
             return None
-    
-    @staticmethod
-    def _get_font(font_size: int):
-        """获取字体"""
-        # 尝试系统字体路径
-        font_paths = [
-            # Windows
-            'C:/Windows/Fonts/msyh.ttc',
-            'C:/Windows/Fonts/simhei.ttf',
-            'C:/Windows/Fonts/arial.ttf',
-            # macOS
-            '/System/Library/Fonts/STHeiti Light.ttc',
-            '/System/Library/Fonts/Arial.ttf',
-            # Linux
-            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
-        ]
-        
-        # 尝试加载字体
-        for font_path in font_paths:
-            try:
-                if os.path.exists(font_path):
-                    return ImageFont.truetype(font_path, font_size)
-            except Exception:
-                continue
-        
-        # 使用默认字体
-        try:
-            return ImageFont.load_default()
-        except Exception:
-            return ImageFont.load_default()
-    
-    @staticmethod
-    def _calculate_position(img_size: Tuple[int, int], text_width: int, 
-                          text_height: int, position: str) -> Tuple[int, int]:
-        """计算水印位置"""
-        img_width, img_height = img_size
-        margin = 20
-        
-        positions = {
-            'top_left': (margin, margin),
-            'top_right': (img_width - text_width - margin, margin),
-            'bottom_left': (margin, img_height - text_height - margin),
-            'bottom_right': (img_width - text_width - margin, img_height - text_height - margin),
-            'center': ((img_width - text_width) // 2, (img_height - text_height) // 2)
-        }
-        
-        return positions.get(position, positions['bottom_right'])
 
 
 class ImageCache:
@@ -374,7 +332,7 @@ def create_thumbnail(input_path: str, **kwargs) -> Optional[str]:
     
     # 缓存结果
     if result:
-        full_path = os.path.join(kwargs.get('output_dir', 'static/thumbs'), result)
+        full_path = os.path.join(kwargs.get('output_dir', 'photo/thumbs'), result)
         ImageCache.cache_result(cache_key, full_path)
     
     return result
@@ -394,7 +352,7 @@ def add_watermark(input_path: str, watermark_text: str, **kwargs) -> Optional[st
     
     # 缓存结果
     if result:
-        full_path = os.path.join(kwargs.get('output_dir', 'static/uploads'), result)
+        full_path = os.path.join(kwargs.get('output_dir', 'photo/uploads'), result)
         ImageCache.cache_result(cache_key, full_path)
     
     return result
