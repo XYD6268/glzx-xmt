@@ -90,8 +90,13 @@ class PhotoService:
             filename = secure_filename(file.filename)
             unique_filename = f"{uuid.uuid4().hex}_{filename}"
             
-            upload_path = os.path.join('photo/uploads', unique_filename)
-            os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+            # 获取项目根目录
+            import os
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            upload_dir = os.path.join(BASE_DIR, 'photo', 'uploads')
+            upload_path = os.path.join(upload_dir, unique_filename)
+            
+            os.makedirs(upload_dir, exist_ok=True)
             file.save(upload_path)
             
             return unique_filename

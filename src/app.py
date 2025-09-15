@@ -1,9 +1,10 @@
+import os
+import os
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from PIL import Image, ImageDraw, ImageFont
-import os
 import pandas as pd
 import zipfile
 import tempfile
@@ -11,6 +12,11 @@ import shutil
 from io import BytesIO
 from datetime import datetime
 from functools import wraps
+
+# 获取项目根目录
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PHOTO_UPLOAD_DIR = os.path.join(BASE_DIR, 'photo', 'uploads')
+PHOTO_THUMB_DIR = os.path.join(BASE_DIR, 'photo', 'thumbs')
 
 app = Flask(__name__, 
             template_folder='../templates',
@@ -37,8 +43,8 @@ if not DATABASE_URL:
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = _getenv_bool('SQLALCHEMY_TRACK_MODIFICATIONS', False)
-app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
-app.config['THUMB_FOLDER'] = os.environ.get('THUMB_FOLDER', 'static/thumbs')
+app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', PHOTO_UPLOAD_DIR)
+app.config['THUMB_FOLDER'] = os.environ.get('THUMB_FOLDER', PHOTO_THUMB_DIR)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 # 禁用默认静态文件路由中的uploads目录访问
 app.static_folder = 'static'
@@ -763,7 +769,7 @@ def upload():
                 # 生成缩略图
                 thumb_path = os.path.join(app.config['THUMB_FOLDER'], unique_filename)
                 img = Image.open(save_path)
-                img.thumbnail((180, 120))
+                img.thumbnail((1920, 1080))
                 img.save(thumb_path)
                 
                 # 写入数据库
@@ -1785,15 +1791,16 @@ def get_thumb(photo_id):
         # 获取缩略图失败
         return '', 500
 
-@app.route('/static/uploads/<path:filename>')
+@app.route('/photo/uploads/<path:filename>')
 def secure_uploaded_file(filename):
     if not session.get('user_id'):
         flash('请先登录')
         return redirect(url_for('login'))
     
     # 查找对应的照片记录
-    file_path = f'static/uploads/{filename}'
-    photo = Photo.query.filter_by(url=f'/{file_path}').first()
+    file_path_url = f'photo/uploads/{filename}'  # URL路径
+    file_path_file = os.path.join(PHOTO_UPLOAD_DIR, filename)  # 文件系统路径
+    photo = Photo.query.filter_by(url=f'/{file_path_url}').first()
     
     if not photo:
         flash('文件不存在')
@@ -1803,22 +1810,23 @@ def secure_uploaded_file(filename):
     
     # 检查权限：管理员可以访问所有文件，普通用户只能访问自己的文件
     if current_user.role >= 2:  # 管理员或系统管理员
-        return send_file(file_path)
+        return send_file(file_path_file)
     elif photo.user_id == current_user.id:  # 用户只能访问自己的照片
-        return send_file(file_path)
+        return send_file(file_path_file)
     else:
         flash('您没有权限访问此文件')
         return redirect(url_for('index'))
 
-@app.route('/static/thumbs/<path:filename>')
+@app.route('/photo/thumbs/<path:filename>')
 def secure_thumb_file(filename):
     if not session.get('user_id'):
         flash('请先登录')
         return redirect(url_for('login'))
     
     # 查找对应的照片记录
-    thumb_path = f'static/thumbs/{filename}'
-    photo = Photo.query.filter_by(thumb_url=f'/{thumb_path}').first()
+    thumb_path_url = f'photo/thumbs/{filename}'  # URL路径
+    thumb_path_file = os.path.join(PHOTO_THUMB_DIR, filename)  # 文件系统路径
+    photo = Photo.query.filter_by(thumb_url=f'/{thumb_path_url}').first()
     
     if not photo:
         flash('文件不存在')
@@ -1828,9 +1836,9 @@ def secure_thumb_file(filename):
     
     # 检查权限：管理员可以访问所有缩略图，普通用户只能访问自己的缩略图
     if current_user.role >= 2:  # 管理员或系统管理员
-        return send_file(thumb_path)
+        return send_file(thumb_path_file)
     elif photo.user_id == current_user.id:  # 用户只能访问自己的照片缩略图
-        return send_file(thumb_path)
+        return send_file(thumb_path_file)
     else:
         flash('您没有权限访问此文件')
         return redirect(url_for('index'))
@@ -1848,7 +1856,8 @@ def download_my_photo(photo_id):
         return redirect(url_for('my_photos'))
     
     try:
-        file_path = photo.url[1:]  # 去掉开头的 '/'
+        # 使用绝对路径
+        file_path = os.path.join(PHOTO_UPLOAD_DIR, os.path.basename(photo.url))
         if os.path.exists(file_path):
             # 生成安全的下载文件名
             original_filename = os.path.basename(file_path)

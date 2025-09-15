@@ -18,7 +18,7 @@ class ImageProcessor:
     SUPPORTED_FORMATS = {'JPEG', 'PNG', 'GIF', 'BMP', 'WEBP'}
     
     # 默认配置
-    DEFAULT_THUMBNAIL_SIZE = (300, 200)
+    DEFAULT_THUMBNAIL_SIZE = (1920, 1080)
     DEFAULT_MAX_SIZE = (3840, 2160)
     DEFAULT_QUALITY = 100
     
@@ -50,15 +50,15 @@ class ImageProcessor:
             return {}
     
     @staticmethod
-    def create_thumbnail(input_path: str, size: Tuple[int, int] = (180, 120), 
-                        output_dir: str = 'photo/thumbs', quality: int = 100) -> Optional[str]:
+    def create_thumbnail(input_path: str, size: Tuple[int, int] = (1920, 1080), 
+                        output_dir: str = '../photo/thumbs', quality: int = 100) -> Optional[str]:
         """
         创建缩略图
         
         Args:
             input_path: 输入图片路径
-            size: 缩略图尺寸 (宽, 高)，默认(180, 120)
-            output_dir: 输出目录，默认为photo/thumbs
+            size: 缩略图尺寸 (宽, 高)，默认(1920, 1080) - 1080p
+            output_dir: 输出目录，默认为../photo/thumbs
             quality: 图片保存质量，默认100 (最高质量)
             
         Returns:
@@ -171,7 +171,7 @@ class ImageProcessor:
 class WatermarkProcessor:
     @staticmethod
     def add_watermark(input_path: str, watermark_text: str,
-                     output_dir: str = 'photo/uploads',
+                     output_dir: str = '../photo/uploads',
                      position: str = 'bottom_right',
                      opacity: float = 0.3,
                      font_size: int = 20,
@@ -332,7 +332,7 @@ def create_thumbnail(input_path: str, **kwargs) -> Optional[str]:
     
     # 缓存结果
     if result:
-        full_path = os.path.join(kwargs.get('output_dir', 'photo/thumbs'), result)
+        full_path = os.path.join(kwargs.get('output_dir', '../photo/thumbs'), result)
         ImageCache.cache_result(cache_key, full_path)
     
     return result
@@ -352,7 +352,7 @@ def add_watermark(input_path: str, watermark_text: str, **kwargs) -> Optional[st
     
     # 缓存结果
     if result:
-        full_path = os.path.join(kwargs.get('output_dir', 'photo/uploads'), result)
+        full_path = os.path.join(kwargs.get('output_dir', '../photo/uploads'), result)
         ImageCache.cache_result(cache_key, full_path)
     
     return result

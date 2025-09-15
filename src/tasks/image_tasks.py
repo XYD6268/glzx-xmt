@@ -37,7 +37,7 @@ def process_image(self, photo_id: str):
             watermark_result = add_watermark(
                 photo.url[1:],  # 去掉开头的 '/'
                 f"{photo.student_name} {photo.class_name}",
-                'photo/uploads',  # 更新存储路径
+                '../photo/uploads',  # 更新存储路径
                 settings.watermark_position,
                 settings.watermark_opacity,
                 settings.watermark_font_size,
@@ -83,11 +83,11 @@ def create_thumbnail_task(photo_id: str) -> Optional[str]:
         return None
 
 
-def create_thumbnail(original_path, size=(180, 120), quality=100):
+def create_thumbnail(original_path, size=(1920, 1080), quality=100):
     """创建缩略图"""
     try:
         # 确保缩略图目录存在
-        thumb_dir = 'photo/thumbs'
+        thumb_dir = '../photo/thumbs'
         os.makedirs(thumb_dir, exist_ok=True)
         
         # 打开原图
@@ -163,7 +163,7 @@ def add_watermark_task(original_path, student_name, class_name, settings):
             
             # 生成新文件名
             filename = f"watermarked_{uuid.uuid4().hex}.jpg"
-            watermarked_path = os.path.join('photo/uploads', filename)
+            watermarked_path = os.path.join('../photo/uploads', filename)
             
             # 保存带水印的图片
             watermarked.save(watermarked_path, 'JPEG', quality=100, optimize=True)
@@ -179,7 +179,7 @@ def add_watermark_task(original_path, student_name, class_name, settings):
 def get_watermark_font(font_size):
     """获取水印字体"""
     # 只使用项目内置的鸿蒙字体以提高性能
-    font_path = 'static/fonts/HarmonyOS_Sans_SC_Regular.ttf'
+    font_path = '../static/fonts/HarmonyOS_Sans_SC_Regular.ttf'
     
     try:
         if os.path.exists(font_path):

@@ -144,7 +144,7 @@ def check_environment():
         return False
     
     # 检查目录
-    required_dirs = ['photo/uploads', 'photo/thumbs', 'logs']
+    required_dirs = ['../photo/uploads', '../photo/thumbs', 'logs']
     for dir_path in required_dirs:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path, exist_ok=True)
