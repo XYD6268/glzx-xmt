@@ -83,7 +83,7 @@ def create_thumbnail_task(photo_id: str) -> Optional[str]:
         return None
 
 
-def create_thumbnail(original_path, size=(1920, 1080), quality=100):
+def create_thumbnail(original_path, size=(2560, 1440), quality=100):
     """创建缩略图"""
     try:
         # 确保缩略图目录存在

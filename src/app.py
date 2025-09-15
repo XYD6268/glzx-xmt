@@ -758,10 +758,16 @@ def upload():
                 
                 filename = secure_filename(file.filename)
                 # 为每个文件生成唯一的文件名
-                import time
-                timestamp = str(int(time.time() * 1000))
                 name, ext = os.path.splitext(filename)
-                unique_filename = f"{name}_{timestamp}_{uploaded_count}{ext}"
+                
+                # 生成安全的标题和姓名
+                safe_title = "".join(c for c in (title or '未命名') if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                safe_name = "".join(c for c in student_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                
+                # 使用与下载时一致的命名规则：作品名称_学生姓名_唯一标识.扩展名
+                import uuid
+                unique_id = uuid.uuid4().hex[:8]  # 使用UUID的一部分确保唯一性
+                unique_filename = f"{safe_title}_{safe_name}_{unique_id}{ext}"
                 
                 save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 file.save(save_path)
@@ -769,7 +775,7 @@ def upload():
                 # 生成缩略图
                 thumb_path = os.path.join(app.config['THUMB_FOLDER'], unique_filename)
                 img = Image.open(save_path)
-                img.thumbnail((1920, 1080))
+                img.thumbnail((2560, 1440))
                 img.save(thumb_path)
                 
                 # 写入数据库

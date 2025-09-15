@@ -73,7 +73,7 @@ class BaseConfig:
     
     # 图片处理配置
     IMAGE_QUALITY = 100
-    THUMBNAIL_SIZE = (1920, 1080)
+    THUMBNAIL_SIZE = (2560, 1440)
     WATERMARK_ENABLED = _getenv_bool('WATERMARK_ENABLED', True)
 
 

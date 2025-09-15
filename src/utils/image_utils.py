@@ -18,7 +18,7 @@ class ImageProcessor:
     SUPPORTED_FORMATS = {'JPEG', 'PNG', 'GIF', 'BMP', 'WEBP'}
     
     # 默认配置
-    DEFAULT_THUMBNAIL_SIZE = (1920, 1080)
+    DEFAULT_THUMBNAIL_SIZE = (2560, 1440)
     DEFAULT_MAX_SIZE = (3840, 2160)
     DEFAULT_QUALITY = 100
     
@@ -50,14 +50,14 @@ class ImageProcessor:
             return {}
     
     @staticmethod
-    def create_thumbnail(input_path: str, size: Tuple[int, int] = (1920, 1080), 
+    def create_thumbnail(input_path: str, size: Tuple[int, int] = (2560, 1440), 
                         output_dir: str = '../photo/thumbs', quality: int = 100) -> Optional[str]:
         """
         创建缩略图
         
         Args:
             input_path: 输入图片路径
-            size: 缩略图尺寸 (宽, 高)，默认(1920, 1080) - 1080p
+            size: 缩略图尺寸 (宽, 高)，默认(2560, 1440) - 2K
             output_dir: 输出目录，默认为../photo/thumbs
             quality: 图片保存质量，默认100 (最高质量)
             

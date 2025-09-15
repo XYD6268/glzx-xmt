@@ -117,8 +117,8 @@
         }
         .photo-item img {
             width: 100%;
-            max-width: 180px;
-            max-height: 120px;
+            max-width: 250px;
+            max-height: 180px;
             border-radius: 6px;
             cursor: pointer;
             margin-bottom: 12px;
@@ -178,8 +178,8 @@
             border-radius: 0 0 6px 6px;
         }
         .list-thumb {
-            width: 80px;
-            height: 60px;
+            width: 180px;
+            height: 135px;
             border-radius: 4px;
             cursor: pointer;
             object-fit: cover;
@@ -328,6 +328,10 @@
                 grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
                 gap: 12px;
             }
+            .photo-item img {
+                max-width: 220px;
+                max-height: 160px;
+            }
         }
         
         @media (max-width: 768px) {
@@ -343,8 +347,8 @@
                 padding: 8px;
             }
             .list-thumb {
-                width: 50px;
-                height: 38px;
+                width: 120px;
+                height: 90px;
             }
             .photo-grid {
                 grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -352,6 +356,10 @@
             }
             .photo-item {
                 padding: 8px;
+            }
+            .photo-item img {
+                max-width: 180px;
+                max-height: 130px;
             }
             .btn {
                 padding: 6px 12px;
@@ -371,8 +379,12 @@
                 padding: 6px;
             }
             .list-thumb {
-                width: 40px;
-                height: 30px;
+                width: 90px;
+                height: 68px;
+            }
+            .photo-item img {
+                max-width: 150px;
+                max-height: 110px;
             }
             .nav-btn {
                 padding: 6px 12px;
@@ -398,8 +410,12 @@
                 padding: 4px;
             }
             .list-thumb {
-                width: 30px;
-                height: 23px;
+                width: 70px;
+                height: 52px;
+            }
+            .photo-item img {
+                max-width: 100%;
+                max-height: 100px;
             }
             .empty-state {
                 padding: 40px 10px;
