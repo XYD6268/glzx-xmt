@@ -50,9 +50,10 @@ python app.py
 ├── app.py              # MySQL版本主程序
 ├── app_test.py         # SQLite版本主程序
 ├── requirements.txt    # 依赖包列表
-├── static/            # 静态文件
+├── photo/             # 照片存储目录
 │   ├── uploads/       # 原图存储
 │   └── thumbs/        # 缩略图存储
+├── static/            # 静态文件
 └── templates/         # HTML模板
     ├── index.html     # 主页
     ├── login.html     # 登录页
