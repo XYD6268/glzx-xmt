@@ -276,10 +276,10 @@
         </div>
         
         <div class="nav">
-            <a href="{{ url_for('index') }}">🏠 首页</a>
-            <a href="{{ url_for('admin') }}">📊 管理面板</a>
-            <a href="{{ url_for('settings') }}">⚙️ 系统设置</a>
-            <a href="{{ url_for('manage_users') }}">👥 用户管理</a>
+            <a href="{{ url_for('main.index') }}">🏠 首页</a>
+            <a href="{{ url_for('main.admin') }}">📊 管理面板</a>
+            <a href="{{ url_for('main.settings') }}">⚙️ 系统设置</a>
+            <a href="{{ url_for('main.manage_users') }}">👥 用户管理</a>
         </div>
         
         {% with messages = get_flashed_messages() %}
@@ -388,7 +388,7 @@
                                     {{ record.user_agent[:50] }}{% if record.user_agent|length > 50 %}...{% endif %}
                                 </td>
                                 <td>
-                                    <form method="post" action="{{ url_for('ban_ip') }}" style="display: inline;">
+                                    <form method="post" action="{{ url_for('main.ban_ip') }}" style="display: inline;">
                                         <input type="hidden" name="ip_address" value="{{ record.ip_address }}">
                                         <input type="hidden" name="reason" value="手动封禁">
                                         <button type="submit" class="btn btn-ban" 
@@ -441,7 +441,7 @@
                                 </td>
                                 <td>
                                     {% if analysis.vote_count > settings.max_votes_per_ip or analysis.user_count > settings.max_accounts_per_ip %}
-                                        <form method="post" action="{{ url_for('ban_ip') }}" style="display: inline;">
+                                        <form method="post" action="{{ url_for('main.ban_ip') }}" style="display: inline;">
                                             <input type="hidden" name="ip_address" value="{{ analysis.ip_address }}">
                                             <input type="hidden" name="reason" value="投票/登录异常">
                                             <button type="submit" class="btn btn-ban" 

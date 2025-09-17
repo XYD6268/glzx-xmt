@@ -455,9 +455,9 @@
         <div class="header">
             <h1 class="title">我的照片</h1>
             <div class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
-                <a href="{{ url_for('upload') }}" class="nav-btn">上传照片</a>
-                <a href="{{ url_for('change_password') }}" class="nav-btn">修改密码</a>
+                <a href="{{ url_for('main.index') }}" class="nav-btn">返回首页</a>
+                <a href="{{ url_for('main.upload') }}" class="nav-btn">上传照片</a>
+                <a href="{{ url_for('main.change_password') }}" class="nav-btn">修改密码</a>
             </div>
         </div>
         
@@ -567,7 +567,7 @@
             <h3>📷 还没有上传照片</h3>
             <p>您还没有上传任何照片到摄影比赛</p>
             <p>快去上传您的精彩作品吧！</p>
-            <a href="{{ url_for('upload') }}" class="upload-link">立即上传</a>
+            <a href="{{ url_for('main.upload') }}" class="upload-link">立即上传</a>
         </div>
         {% endif %}
     </div>

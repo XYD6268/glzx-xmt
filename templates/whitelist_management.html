@@ -347,11 +347,11 @@
         </div>
         
         <div class="nav">
-            <a href="{{ url_for('admin') }}">管理后台</a>
-            <a href="{{ url_for('ip_management') }}">IP管理</a>
-            <a href="{{ url_for('whitelist_management') }}" class="current">白名单管理</a>
-            <a href="{{ url_for('settings') }}">系统设置</a>
-            <a href="{{ url_for('index') }}">返回首页</a>
+            <a href="{{ url_for('main.admin') }}">管理后台</a>
+            <a href="{{ url_for('main.ip_management') }}">IP管理</a>
+            <a href="{{ url_for('main.whitelist_management') }}" class="current">白名单管理</a>
+            <a href="{{ url_for('main.settings') }}">系统设置</a>
+            <a href="{{ url_for('main.index') }}">返回首页</a>
         </div>
         
         <!-- Flash Messages -->
@@ -388,7 +388,7 @@
             <!-- Add IP Form -->
             <div class="add-form">
                 <h3 class="form-title">📋 添加IP白名单</h3>
-                <form method="POST" action="{{ url_for('add_ip_whitelist') }}">
+                <form method="POST" action="{{ url_for('main.add_ip_whitelist') }}">
                     <div class="form-group">
                         <label for="ip_address">IP地址 *</label>
                         <input type="text" id="ip_address" name="ip_address" placeholder="例如: 192.168.1.1" required>
@@ -451,7 +451,7 @@
             <!-- Add User Form -->
             <div class="add-form">
                 <h3 class="form-title">👤 添加用户白名单</h3>
-                <form method="POST" action="{{ url_for('add_user_whitelist') }}">
+                <form method="POST" action="{{ url_for('main.add_user_whitelist') }}">
                     <div class="form-group">
                         <label for="user_id">用户ID *</label>
                         <input type="number" id="user_id" name="user_id" placeholder="输入用户ID" required>

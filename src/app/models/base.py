@@ -7,7 +7,7 @@ import orjson
 
 
 # 全局数据库实例
-db = SQLAlchemy()
+from app import db
 
 
 class BaseModel(db.Model):

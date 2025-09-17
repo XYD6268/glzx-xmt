@@ -263,10 +263,10 @@
     <div class="container">
         <div class="title">用户管理</div>
         
-        <a href="{{ url_for('index') }}" class="nav-btn">🏠 返回首页</a>
-        <a href="{{ url_for('admin') }}" class="nav-btn">📊 管理面板</a>
-        <a href="{{ url_for('ip_management') }}" class="nav-btn">🛡️ IP管理</a>
-        <a href="{{ url_for('settings') }}" class="nav-btn">⚙️ 系统设置</a>
+        <a href="{{ url_for('main.index') }}" class="nav-btn">🏠 返回首页</a>
+        <a href="{{ url_for('main.admin') }}" class="nav-btn">📊 管理面板</a>
+        <a href="{{ url_for('main.ip_management') }}" class="nav-btn">🛡️ IP管理</a>
+        <a href="{{ url_for('main.settings') }}" class="nav-btn">⚙️ 系统设置</a>
         
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -283,7 +283,7 @@
                 <button type="button" onclick="selectInverse()" class="btn btn-secondary">反选</button>
             </div>
             <div class="right-controls">
-                <a href="{{ url_for('add_user') }}" class="btn btn-primary">
+                <a href="{{ url_for('main.add_user') }}" class="btn btn-primary">
                     👤 添加用户
                 </a>
                 <button type="button" onclick="batchAction('activate')" class="btn btn-success">批量激活</button>

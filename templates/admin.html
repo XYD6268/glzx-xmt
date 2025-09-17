@@ -404,11 +404,11 @@
         <div class="header">
             <h1 class="title">管理面板</h1>
             <div class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-btn">🏠 返回首页</a>
-                <a href="{{ url_for('admin_review') }}" class="nav-btn">📝 照片审核</a>
-                <a href="{{ url_for('manage_users') }}" class="nav-btn">👥 用户管理</a>
-                <a href="{{ url_for('ip_management') }}" class="nav-btn">🛡️ IP管理</a>
-                <a href="{{ url_for('settings') }}" class="nav-btn">⚙️ 系统设置</a>
+                <a href="{{ url_for('main.index') }}" class="nav-btn">🏠 返回首页</a>
+                <a href="{{ url_for('main.admin_review') }}" class="nav-btn">📝 照片审核</a>
+                <a href="{{ url_for('main.manage_users') }}" class="nav-btn">👥 用户管理</a>
+                <a href="{{ url_for('main.ip_management') }}" class="nav-btn">🛡️ IP管理</a>
+                <a href="{{ url_for('main.settings') }}" class="nav-btn">⚙️ 系统设置</a>
             </div>
         </div>
         
@@ -433,8 +433,8 @@
             </div>
             <div class="export-controls">
                 <span>导出/下载：</span>
-                <a href="{{ url_for('export_excel') }}" class="btn btn-success">📊 导出Excel</a>
-                <a href="{{ url_for('download_all_photos') }}" class="btn btn-info">📦 下载全部照片</a>
+                <a href="{{ url_for('main.export_excel') }}" class="btn btn-success">📊 导出Excel</a>
+                <a href="{{ url_for('main.download_all_photos') }}" class="btn btn-info">📦 下载全部照片</a>
                 <button class="btn btn-warning" onclick="toggleBatchMode()">✅ 批量选择</button>
             </div>
         </div>
@@ -448,7 +448,7 @@
                 </label>
                 <span id="selected-count" style="margin-left: 20px; color: #ccc;">已选择: 0 张</span>
             </div>
-            <form id="batch-form" action="{{ url_for('download_selected_photos') }}" method="post">
+            <form id="batch-form" action="{{ url_for('main.download_selected_photos') }}" method="post">
                 <div class="batch-buttons">
                     <button type="submit" class="btn btn-info">📥 下载选中照片</button>
                     <button type="button" class="btn" onclick="toggleBatchMode()">取消批量模式</button>
@@ -496,7 +496,7 @@
                     {% endif %}
                 </div>
                 <div style="margin-top: 8px;">
-                    <a href="{{ url_for('download_photo', photo_id=photo.id) }}" class="btn" style="font-size: 12px; padding: 4px 8px;">📥 下载</a>
+                    <a href="{{ url_for('main.download_photo', photo_id=photo.id) }}" class="btn" style="font-size: 12px; padding: 4px 8px;">📥 下载</a>
                 </div>
             </div>
             {% endfor %}
@@ -538,7 +538,7 @@
                 <div>#{{ photo.id }}</div>
                 <div>{{ photo.created_at.strftime('%m-%d %H:%M') if photo.created_at else '' }}</div>
                 <div>
-                    <a href="{{ url_for('download_photo', photo_id=photo.id) }}" class="btn" style="font-size: 11px; padding: 2px 6px;">📥</a>
+                    <a href="{{ url_for('main.download_photo', photo_id=photo.id) }}" class="btn" style="font-size: 11px; padding: 2px 6px;">📥</a>
                 </div>
             </div>
             {% endfor %}

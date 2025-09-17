@@ -175,7 +175,7 @@
     <div class="container">
         <div class="header">
             <h1 class="title">{% if agreement %}✏️ 编辑协议{% else %}➕ 添加协议{% endif %}</h1>
-            <a href="{{ url_for('agreement_management') }}" class="nav-btn">📄 协议管理</a>
+            <a href="{{ url_for('main.agreement_management') }}" class="nav-btn">📄 协议管理</a>
         </div>
 
         <!-- Flash消息 -->
@@ -236,7 +236,7 @@
 
             <div class="btn-group">
                 <button type="submit" class="btn btn-primary">💾 保存协议</button>
-                <a href="{{ url_for('agreement_management') }}" class="btn btn-secondary">❌ 取消</a>
+                <a href="{{ url_for('main.agreement_management') }}" class="btn btn-secondary">❌ 取消</a>
                 <button type="button" class="btn preview-btn" onclick="previewAgreement()">👁️ 预览效果</button>
             </div>
         </form>

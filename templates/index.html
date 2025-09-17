@@ -451,25 +451,25 @@
                     {% endif %}
                 </div>
                 <div class="user-links">
-                    <a href="{{ url_for('my_photos') }}">我的照片</a>
+                    <a href="{{ url_for('main.my_photos') }}">我的照片</a>
                     {% if show_rankings %}
-                        <a href="{{ url_for('rankings') }}">票数排行榜</a>
+                        <a href="{{ url_for('main.rankings') }}">票数排行榜</a>
                     {% endif %}
-                    <a href="{{ url_for('change_password') }}">修改密码</a>
+                    <a href="{{ url_for('main.change_password') }}">修改密码</a>
                     {% if current_user.role >= 2 %}
-                        <a href="{{ url_for('admin') }}">管理面板</a>
+                        <a href="{{ url_for('main.admin') }}">管理面板</a>
                     {% endif %}
                     {% if current_user.role >= 3 %}
-                        <a href="{{ url_for('settings') }}">系统设置</a>
-                        <a href="{{ url_for('manage_users') }}">用户管理</a>
+                        <a href="{{ url_for('main.settings') }}">系统设置</a>
+                        <a href="{{ url_for('main.manage_users') }}">用户管理</a>
                     {% endif %}
-                    <a href="{{ url_for('logout') }}">退出登录</a>
+                    <a href="{{ url_for('main.logout') }}">退出登录</a>
                 </div>
             {% else %}
                 <div class="user-info">游客模式</div>
                 <div class="user-links">
-                    <a href="{{ url_for('login') }}">登录</a>
-                    <a href="{{ url_for('register') }}">注册</a>
+                    <a href="{{ url_for('main.login') }}">登录</a>
+                    <a href="{{ url_for('main.register') }}">注册</a>
                 </div>
             {% endif %}
         </div>

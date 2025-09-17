@@ -143,10 +143,8 @@
             <button class="btn" type="submit">注册</button>
         </form>
         <div class="link">
-            已有账号？点击 <a href="{{ url_for('login') }}">登录</a>
-        </div>
-        <div class="link">
-            <a href="{{ url_for('index') }}">返回首页</a>
+            已有账号？点击 <a href="{{ url_for('main.login') }}">登录</a>
+            <a href="{{ url_for('main.index') }}">返回首页</a>
         </div>
     </div>
     

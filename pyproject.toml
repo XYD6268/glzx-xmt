@@ -11,43 +11,22 @@ license = {text = "GPLv3"}
 authors = [
     {name = "Project Author", email = "author@example.com"}
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "Flask[async,dotenv]",
     "python-dotenv",
     "Flask-SQLAlchemy",
-    "SQLAlchemy[asyncio,mypy,postgresql-asyncpg]",
-    "asyncpg",
     "Flask-Caching",
-    "redis[hiredis]",
-    "celery",
     "Pillow",
     "orjson",
     "Flask-WTF",
     "Werkzeug",
-    "gunicorn[gevent]",
-    "gevent[events]",
-    "pandas[performance]",
 ]
 
 [project.optional-dependencies]
 dev = [
     "mypy",
     "ruff",
-    "pytest",
-    "pytest-cov",
-    "pytest-mock",
-]
-production = [
-    "sentry-sdk[celery,flask,http2]",
-    "prometheus-flask-exporter",
-    "structlog",
-    "flask-talisman",
-    "flask-compress"
-]
-high-performance = [
-    "Pillow-SIMD; platform_system!='Windows'",
-    "Pillow; platform_system=='Windows'"
 ]
 
 [project.urls]

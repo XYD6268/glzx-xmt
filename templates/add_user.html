@@ -145,8 +145,8 @@
     <div class="container">
         <div class="title">添加用户</div>
         
-        <a href="{{ url_for('manage_users') }}" class="nav-btn">返回用户管理</a>
-        <a href="{{ url_for('index') }}" class="nav-btn">返回首页</a>
+        <a href="{{ url_for('main.manage_users') }}" class="nav-btn">返回用户管理</a>
+        <a href="{{ url_for('main.index') }}" class="nav-btn">返回首页</a>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -213,7 +213,7 @@
             </div>
             
             <button type="submit" class="btn">创建用户</button>
-            <a href="{{ url_for('manage_users') }}" class="btn btn-secondary">取消</a>
+            <a href="{{ url_for('main.manage_users') }}" class="btn btn-secondary">取消</a>
         </form>
     </div>
     

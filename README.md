@@ -34,21 +34,26 @@ pip install -r requirements.txt
 
 ### 2. 运行应用
 ```bash
-# SQLite版本（推荐测试使用）
-python app_test.py
-
-# MySQL版本（需要配置数据库）
-python app.py
+cd src
+python run.py
 ```
 
 ### 3. 访问系统
 - 打开浏览器访问：http://127.0.0.1:5000
-- 默认管理员账号：`admin` / `admin123`
+- 默认管理员账号：`系统管理员` / `admin123456`
 
 ## 目录结构
 ```
-├── app.py              # MySQL版本主程序
-├── app_test.py         # SQLite版本主程序
+├── src/               # 源代码目录
+│   ├── run.py         # 应用入口文件
+│   ├── app/           # 应用核心代码
+│   │   ├── __init__.py
+│   │   ├── api/       # API接口
+│   │   ├── core/      # 核心配置
+│   │   ├── models/    # 数据模型
+│   │   ├── routes.py  # 路由定义
+│   │   ├── services/  # 业务服务
+│   │   └── utils/     # 工具函数
 ├── requirements.txt    # 依赖包列表
 ├── photo/             # 照片存储目录
 │   ├── uploads/       # 原图存储
@@ -67,11 +72,8 @@ python app.py
 
 ## 系统配置
 
-### MySQL版本配置
-修改 `app.py` 中的数据库连接字符串：
-```python
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://用户名:密码@localhost/数据库名'
-```
+### 数据库配置
+本系统使用SQLite数据库，无需额外配置数据库。
 
 ### 安全设置
 修改密钥：
@@ -102,7 +104,7 @@ app.config['SECRET_KEY'] = 'your-secret-key-here'
 
 ## 技术栈
 - **后端**: Flask + SQLAlchemy
-- **数据库**: SQLite / MySQL
+- **数据库**: SQLite
 - **前端**: HTML + CSS + JavaScript
 - **图像处理**: Pillow (PIL)
 - **安全**: Werkzeug (密码哈希、文件安全)
